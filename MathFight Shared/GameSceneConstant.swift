@@ -11,7 +11,7 @@ import Foundation
 let playerAnimationKey = "PLAYER_ANIMATION_KEY"
 
 enum CharacterState {
-    case idle, walk, jump, fall, attack1, attack2, dead
+    case idle, run, jump, fall, attack1, attack2, dead
 }
 
 /// Bot constant

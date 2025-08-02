@@ -25,9 +25,11 @@
 				Resources/Sprites/Background/land_0004.png,
 				Resources/Sprites/Bot/BotIdle.atlas,
 				Resources/Sprites/Player/PlayerAttack1.atlas,
+				Resources/Sprites/Player/PlayerAttack2.atlas,
 				Resources/Sprites/Player/PlayerFall.atlas,
 				Resources/Sprites/Player/PlayerIdle.atlas,
 				Resources/Sprites/Player/PlayerJump.atlas,
+				Resources/Sprites/Player/PlayerRun.atlas,
 			);
 			target = BDBBCD002E3BA95F0068E6F1 /* MathFight iOS */;
 		};
@@ -43,9 +45,11 @@
 				Resources/Sprites/Background/land_0004.png,
 				Resources/Sprites/Bot/BotIdle.atlas,
 				Resources/Sprites/Player/PlayerAttack1.atlas,
+				Resources/Sprites/Player/PlayerAttack2.atlas,
 				Resources/Sprites/Player/PlayerFall.atlas,
 				Resources/Sprites/Player/PlayerIdle.atlas,
 				Resources/Sprites/Player/PlayerJump.atlas,
+				Resources/Sprites/Player/PlayerRun.atlas,
 			);
 			target = BDBBCD112E3BA95F0068E6F1 /* MathFight tvOS */;
 		};
@@ -61,9 +65,11 @@
 				Resources/Sprites/Background/land_0004.png,
 				Resources/Sprites/Bot/BotIdle.atlas,
 				Resources/Sprites/Player/PlayerAttack1.atlas,
+				Resources/Sprites/Player/PlayerAttack2.atlas,
 				Resources/Sprites/Player/PlayerFall.atlas,
 				Resources/Sprites/Player/PlayerIdle.atlas,
 				Resources/Sprites/Player/PlayerJump.atlas,
+				Resources/Sprites/Player/PlayerRun.atlas,
 			);
 			target = BDBBCD212E3BA95F0068E6F1 /* MathFight macOS */;
 		};

@@ -13,9 +13,7 @@ struct PhysicsCategory {
 }
 
 class GameScene: SKScene, SKPhysicsContactDelegate {
-
-    fileprivate var label: SKLabelNode?
-    fileprivate var spinnyNode: SKShapeNode?
+    var pressedKeys = Set<UInt16>()
 
     var player: SKSpriteNode!
     var playerState: CharacterState = .idle
@@ -27,11 +25,17 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     var playerAttack1Frames: [SKTexture] {
         setupAnimationFrames(name: "PlayerAttack1")
     }
+    var playerAttack2Frames: [SKTexture] {
+        setupAnimationFrames(name: "PlayerAttack2")
+    }
     var playerJumpFrames: [SKTexture] {
         setupAnimationFrames(name: "PlayerJump")
     }
     var playerFallFrames: [SKTexture] {
         setupAnimationFrames(name: "PlayerFall")
+    }
+    var playerRunFrames: [SKTexture] {
+        setupAnimationFrames(name: "PlayerRun")
     }
     var moveDirection: CGFloat = 0.0
     let moveSpeed: CGFloat = 500.0
@@ -41,29 +45,31 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         setupAnimationFrames(name: "BotIdle")
     }
 
-    let buttonLeft = SKSpriteNode(
-        texture: SKTexture(
-            image: UIImage(systemName: "arrow.left.circle")!
+    #if os(iOS)
+        let buttonLeft = SKSpriteNode(
+            texture: SKTexture(
+                image: UIImage(systemName: "arrow.left.circle")!
+            )
         )
-    )
 
-    let buttonRight = SKSpriteNode(
-        texture: SKTexture(
-            image: UIImage(systemName: "arrow.right.circle")!
+        let buttonRight = SKSpriteNode(
+            texture: SKTexture(
+                image: UIImage(systemName: "arrow.right.circle")!
+            )
         )
-    )
 
-    let buttonJump = SKSpriteNode(
-        texture: SKTexture(
-            image: UIImage(systemName: "arrow.up.circle")!
+        let buttonJump = SKSpriteNode(
+            texture: SKTexture(
+                image: UIImage(systemName: "arrow.up.circle")!
+            )
         )
-    )
 
-    let buttonAttack = SKSpriteNode(
-        texture: SKTexture(
-            image: UIImage(systemName: "hand.thumbsup.circle")!
+        let buttonAttack = SKSpriteNode(
+            texture: SKTexture(
+                image: UIImage(systemName: "hand.thumbsup.circle")!
+            )
         )
-    )
+    #endif
 
     class func newGameScene() -> GameScene {
         // Load 'GameScene.sks' as an SKScene.
@@ -84,12 +90,19 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
 
     override func didMove(to view: SKView) {
         self.setUpScene()
+
+        #if os(macOS)
+            view.window?.makeFirstResponder(self)
+        #endif
+
         physicsWorld.gravity = CGVector(dx: 0, dy: -9.8)
         physicsWorld.contactDelegate = self
         setupCharacters()
-        setupButtons()
         setupLand()
 
+        #if os(iOS)
+            setupButtons()
+        #endif
     }
 
     override func update(_ currentTime: TimeInterval) {
@@ -101,16 +114,25 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         }
 
         playerHorizontalMove()
-        
+
         guard let playerPhysicsBody = player.physicsBody else { return }
 
-        if !playerIsOnGround && playerPhysicsBody.velocity.dy < 0 && playerState != .fall && !playerCanAttack {
+        if !playerIsOnGround && playerPhysicsBody.velocity.dy < 0
+            && playerState != .fall && !playerCanAttack
+        {
             changePlayerState(to: .fall)
-        } else if !playerIsOnGround && playerPhysicsBody.velocity.dy > 0 && playerState != .jump && !playerCanAttack {
+        } else if !playerIsOnGround && playerPhysicsBody.velocity.dy > 0
+            && playerState != .jump && !playerCanAttack
+        {
             changePlayerState(to: .jump)
-        }
-        else if playerIsOnGround && playerState != .idle && playerPhysicsBody.velocity.dx == 0 && !playerCanAttack {
+        } else if playerIsOnGround && playerState != .idle
+            && playerPhysicsBody.velocity.dx == 0 && !playerCanAttack
+        {
             changePlayerState(to: .idle)
+        } else if playerIsOnGround && playerState != .run
+            && playerPhysicsBody.velocity.dx != 0 && !playerCanAttack
+        {
+            changePlayerState(to: .run)
         } else if playerCanAttack && playerState != .attack1 {
             print("player attack")
             changePlayerState(to: .attack1)
@@ -118,17 +140,19 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     }
 
     func didBegin(_ contact: SKPhysicsContact) {
-        let combo = contact.bodyA.categoryBitMask | contact.bodyB.categoryBitMask
+        let combo =
+            contact.bodyA.categoryBitMask | contact.bodyB.categoryBitMask
 
         if combo == PhysicsCategory.player | PhysicsCategory.land {
             playerIsOnGround = true
             print("Player kena lantai!")
         }
     }
-    
+
     func didEnd(_ contact: SKPhysicsContact) {
-        let combo = contact.bodyA.categoryBitMask | contact.bodyB.categoryBitMask
-        
+        let combo =
+            contact.bodyA.categoryBitMask | contact.bodyB.categoryBitMask
+
         if combo == PhysicsCategory.player | PhysicsCategory.land {
             playerIsOnGround = false
             print("Player lompat")
@@ -180,43 +204,45 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         return sortedNames.map { atlas.textureNamed($0) }
     }
 
-    func setupButtons() {
-        buttonLeft.position = CGPoint(
-            x: -size.width * 0.4,
-            y: -size.height * 0.2
-        )
-        buttonLeft.name = "left"
-        buttonLeft.scale(to: CGSize(width: 100, height: 100))
-        buttonLeft.zPosition = 2
-        addChild(buttonLeft)
+    #if os(iOS)
+        func setupButtons() {
+            buttonLeft.position = CGPoint(
+                x: -size.width * 0.4,
+                y: -size.height * 0.2
+            )
+            buttonLeft.name = "left"
+            buttonLeft.scale(to: CGSize(width: 100, height: 100))
+            buttonLeft.zPosition = 2
+            addChild(buttonLeft)
 
-        buttonRight.position = CGPoint(
-            x: -size.width * 0.3,
-            y: -size.height * 0.2
-        )
-        buttonRight.name = "right"
-        buttonRight.scale(to: CGSize(width: 100, height: 100))
-        buttonRight.zPosition = 2
-        addChild(buttonRight)
+            buttonRight.position = CGPoint(
+                x: -size.width * 0.3,
+                y: -size.height * 0.2
+            )
+            buttonRight.name = "right"
+            buttonRight.scale(to: CGSize(width: 100, height: 100))
+            buttonRight.zPosition = 2
+            addChild(buttonRight)
 
-        buttonAttack.position = CGPoint(
-            x: size.width * 0.3,
-            y: -size.height * 0.2
-        )
-        buttonAttack.name = "attack"
-        buttonAttack.scale(to: CGSize(width: 100, height: 100))
-        buttonAttack.zPosition = 2
-        addChild(buttonAttack)
+            buttonAttack.position = CGPoint(
+                x: size.width * 0.3,
+                y: -size.height * 0.2
+            )
+            buttonAttack.name = "attack"
+            buttonAttack.scale(to: CGSize(width: 100, height: 100))
+            buttonAttack.zPosition = 2
+            addChild(buttonAttack)
 
-        buttonJump.position = CGPoint(
-            x: size.width * 0.4,
-            y: -size.height * 0.2
-        )
-        buttonJump.name = "jump"
-        buttonJump.scale(to: CGSize(width: 100, height: 100))
-        buttonJump.zPosition = 2
-        addChild(buttonJump)
-    }
+            buttonJump.position = CGPoint(
+                x: size.width * 0.4,
+                y: -size.height * 0.2
+            )
+            buttonJump.name = "jump"
+            buttonJump.scale(to: CGSize(width: 100, height: 100))
+            buttonJump.zPosition = 2
+            addChild(buttonJump)
+        }
+    #endif
 
     func setupLand() {
         let landTexture = SKTexture(imageNamed: "land_0002")
@@ -225,6 +251,13 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
 
         let earthTexture = SKTexture(imageNamed: "land_0004")
         let earthWidth: CGFloat = 100.0
+        
+        #if os(iOS)
+        let verticalOffsetFraction: CGFloat = 0.23
+        #elseif os(macOS)
+        let verticalOffsetFraction: CGFloat = 0.42
+        #endif
+        
 
         var landContainerWidth: CGFloat = 0
 
@@ -233,7 +266,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
             let earth = SKSpriteNode(texture: earthTexture)
             earth.position = CGPoint(
                 x: CGFloat(i) * earthWidth - size.width * 0.5,
-                y: -size.height * 0.31 + earthWidth * 0.5
+                y: -size.height * (verticalOffsetFraction + 0.08) + earthWidth * 0.5
             )
             earth.scale(to: CGSize(width: 100, height: 100))
             earth.zPosition = 1
@@ -241,7 +274,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
 
             land.position = CGPoint(
                 x: CGFloat(i) * landWidth - size.width * 0.5,
-                y: -size.height * 0.23 + landWidth * 0.5
+                y: -size.height * verticalOffsetFraction + landWidth * 0.5
             )
             landContainerWidth += landWidth
             land.scale(to: CGSize(width: 100, height: 100))
@@ -260,31 +293,62 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         landContainer.physicsBody = landPhysicsBody
         landContainer.position = CGPoint(
             x: 0,
-            y: -size.height * 0.25 + landWidth * 0.5
+            y: -size.height * (verticalOffsetFraction + 0.02) + landWidth * 0.5
         )
         addChild(landContainer)
     }
 
     // MARK: -setup end
-    
+
     func changePlayerState(to newState: CharacterState) {
         playerState = newState
         player.removeAction(forKey: playerAnimationKey)
-        
+
         switch playerState {
-            case .idle:
-                startAnimationFrames(frames: playerIdleFrames, key: playerAnimationKey, character: player, loop: true)
-            case .walk: break
-                
-            case .jump:
-                startAnimationFrames(frames: playerJumpFrames, key: playerAnimationKey, character: player, loop: false)
-            case .fall:
-                startAnimationFrames(frames: playerFallFrames, key: playerAnimationKey, character: player, loop: false)
-            case .attack1:
-                startAnimationFrames(frames: playerAttack1Frames, key: playerAnimationKey, character: player, loop: false)
-            case .attack2: break
-                
-            case .dead: break
+        case .idle:
+            startAnimationFrames(
+                frames: playerIdleFrames,
+                key: playerAnimationKey,
+                character: player,
+                loop: true
+            )
+        case .run:
+            startAnimationFrames(
+                frames: playerRunFrames,
+                key: playerAnimationKey,
+                character: player,
+                loop: true
+            )
+        case .jump:
+            startAnimationFrames(
+                frames: playerJumpFrames,
+                key: playerAnimationKey,
+                character: player,
+                loop: false
+            )
+        case .fall:
+            startAnimationFrames(
+                frames: playerFallFrames,
+                key: playerAnimationKey,
+                character: player,
+                loop: false
+            )
+        case .attack1:
+            startAnimationFrames(
+                frames: playerAttack1Frames,
+                key: playerAnimationKey,
+                character: player,
+                loop: false
+            )
+        case .attack2:
+            startAnimationFrames(
+                frames: playerAttack2Frames,
+                key: playerAnimationKey,
+                character: player,
+                loop: false
+            )
+
+        case .dead: break
         }
     }
 
@@ -338,9 +402,12 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
 
     func playerAttack() {
         playerCanAttack = true
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.6, execute: {
-            self.playerCanAttack = false
-        })
+        DispatchQueue.main.asyncAfter(
+            deadline: .now() + 0.6,
+            execute: {
+                self.playerCanAttack = false
+            }
+        )
     }
 
 }
@@ -356,13 +423,17 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
             for touch in touches {
                 let loc = touch.location(in: self)
                 let node = atPoint(loc)
-                
+
                 if node.name == "left" {
                     moveDirection = -1
-                    player.xScale = -1 * characterScale
+                    if !playerCanAttack {
+                        player.xScale = -1 * characterScale
+                    }
                 } else if node.name == "right" {
                     moveDirection = 1
-                    player.xScale = 1 * characterScale
+                    if !playerCanAttack {
+                        player.xScale = 1 * characterScale
+                    }
                 }
 
                 if node.name == "jump" {
@@ -405,23 +476,59 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     }
 #endif
 
-#if os(OSX)
+#if os(macOS)
     // Mouse-based event handling
     extension GameScene {
 
         override func mouseDown(with event: NSEvent) {
-            if let label = self.label {
-                label.run(SKAction.init(named: "Pulse")!, withKey: "fadeInOut")
-            }
-            self.makeSpinny(at: event.location(in: self), color: SKColor.green)
         }
 
         override func mouseDragged(with event: NSEvent) {
-            self.makeSpinny(at: event.location(in: self), color: SKColor.blue)
+
         }
 
         override func mouseUp(with event: NSEvent) {
-            self.makeSpinny(at: event.location(in: self), color: SKColor.red)
+
+        }
+
+        override var acceptsFirstResponder: Bool { true }
+
+        override func keyDown(with event: NSEvent) {
+            self.pressedKeys.insert(event.keyCode)
+            updateForKeyboard()
+        }
+
+        override func keyUp(with event: NSEvent) {
+            self.pressedKeys.remove(event.keyCode)
+            updateForKeyboard()
+        }
+
+        private func updateForKeyboard() {
+            if pressedKeys.contains(KeyInput.a) {
+                moveDirection = -1
+                if !playerCanAttack {
+                    player.xScale = -1 * characterScale
+                }
+            } else if pressedKeys.contains(KeyInput.d) {
+                moveDirection = 1
+                if !playerCanAttack {
+                    player.xScale = 1 * characterScale
+                }
+            }
+
+            if !pressedKeys.contains(KeyInput.a)
+                && !pressedKeys.contains(KeyInput.d)
+            {
+                moveDirection = 0
+            }
+
+            if pressedKeys.contains(KeyInput.w) {
+                playerJump()
+            }
+
+            if pressedKeys.contains(KeyInput.k) {
+                playerAttack()
+            }
         }
 
     }
