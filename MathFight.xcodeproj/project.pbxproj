@@ -19,11 +19,15 @@
 				Actions.sks,
 				GameScene.sks,
 				GameScene.swift,
+				GameSceneConstant.swift,
 				Resources/Assets.xcassets,
 				Resources/Sprites/Background/land_0002.png,
 				Resources/Sprites/Background/land_0004.png,
+				Resources/Sprites/Bot/BotIdle.atlas,
 				Resources/Sprites/Player/PlayerAttack1.atlas,
+				Resources/Sprites/Player/PlayerFall.atlas,
 				Resources/Sprites/Player/PlayerIdle.atlas,
+				Resources/Sprites/Player/PlayerJump.atlas,
 			);
 			target = BDBBCD002E3BA95F0068E6F1 /* MathFight iOS */;
 		};
@@ -33,11 +37,15 @@
 				Actions.sks,
 				GameScene.sks,
 				GameScene.swift,
+				GameSceneConstant.swift,
 				Resources/Assets.xcassets,
 				Resources/Sprites/Background/land_0002.png,
 				Resources/Sprites/Background/land_0004.png,
+				Resources/Sprites/Bot/BotIdle.atlas,
 				Resources/Sprites/Player/PlayerAttack1.atlas,
+				Resources/Sprites/Player/PlayerFall.atlas,
 				Resources/Sprites/Player/PlayerIdle.atlas,
+				Resources/Sprites/Player/PlayerJump.atlas,
 			);
 			target = BDBBCD112E3BA95F0068E6F1 /* MathFight tvOS */;
 		};
@@ -47,11 +55,15 @@
 				Actions.sks,
 				GameScene.sks,
 				GameScene.swift,
+				GameSceneConstant.swift,
 				Resources/Assets.xcassets,
 				Resources/Sprites/Background/land_0002.png,
 				Resources/Sprites/Background/land_0004.png,
+				Resources/Sprites/Bot/BotIdle.atlas,
 				Resources/Sprites/Player/PlayerAttack1.atlas,
+				Resources/Sprites/Player/PlayerFall.atlas,
 				Resources/Sprites/Player/PlayerIdle.atlas,
+				Resources/Sprites/Player/PlayerJump.atlas,
 			);
 			target = BDBBCD212E3BA95F0068E6F1 /* MathFight macOS */;
 		};

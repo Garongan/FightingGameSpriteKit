@@ -9,7 +9,7 @@ import SpriteKit
 
 struct PhysicsCategory {
     static let player: UInt32 = 1 << 0  // 0001
-    static let land:   UInt32 = 1 << 1  // 0010
+    static let land: UInt32 = 1 << 1  // 0010
 }
 
 class GameScene: SKScene, SKPhysicsContactDelegate {
@@ -18,11 +18,28 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     fileprivate var spinnyNode: SKShapeNode?
 
     var player: SKSpriteNode!
-    var bot: SKSpriteNode!
-    var playerIdleFrames: [SKTexture] = []
-    var playerAttack1Frames: [SKTexture] = []
+    var playerState: CharacterState = .idle
+    var playerIsOnGround: Bool = false
+    var playerCanAttack: Bool = false
+    var playerIdleFrames: [SKTexture] {
+        setupAnimationFrames(name: "PlayerIdle")
+    }
+    var playerAttack1Frames: [SKTexture] {
+        setupAnimationFrames(name: "PlayerAttack1")
+    }
+    var playerJumpFrames: [SKTexture] {
+        setupAnimationFrames(name: "PlayerJump")
+    }
+    var playerFallFrames: [SKTexture] {
+        setupAnimationFrames(name: "PlayerFall")
+    }
     var moveDirection: CGFloat = 0.0
     let moveSpeed: CGFloat = 500.0
+
+    var bot: SKSpriteNode!
+    var botIdleFrames: [SKTexture] {
+        setupAnimationFrames(name: "BotIdle")
+    }
 
     let buttonLeft = SKSpriteNode(
         texture: SKTexture(
@@ -35,13 +52,13 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
             image: UIImage(systemName: "arrow.right.circle")!
         )
     )
-    
+
     let buttonJump = SKSpriteNode(
         texture: SKTexture(
             image: UIImage(systemName: "arrow.up.circle")!
         )
     )
-    
+
     let buttonAttack = SKSpriteNode(
         texture: SKTexture(
             image: UIImage(systemName: "hand.thumbsup.circle")!
@@ -69,12 +86,10 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         self.setUpScene()
         physicsWorld.gravity = CGVector(dx: 0, dy: -9.8)
         physicsWorld.contactDelegate = self
-        setupPlayerIdleFrames()
-        setupPlayerAttackFrames()
         setupCharacters()
-        startPlayerIdleAnimation()
         setupButtons()
         setupLand()
+
     }
 
     override func update(_ currentTime: TimeInterval) {
@@ -84,51 +99,87 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         } else {
             moveBotTowardPlayer()
         }
-        
+
         playerHorizontalMove()
+        
+        guard let playerPhysicsBody = player.physicsBody else { return }
+
+        if !playerIsOnGround && playerPhysicsBody.velocity.dy < 0 && playerState != .fall && !playerCanAttack {
+            changePlayerState(to: .fall)
+        } else if !playerIsOnGround && playerPhysicsBody.velocity.dy > 0 && playerState != .jump && !playerCanAttack {
+            changePlayerState(to: .jump)
+        }
+        else if playerIsOnGround && playerState != .idle && playerPhysicsBody.velocity.dx == 0 && !playerCanAttack {
+            changePlayerState(to: .idle)
+        } else if playerCanAttack && playerState != .attack1 {
+            print("player attack")
+            changePlayerState(to: .attack1)
+        }
+    }
+
+    func didBegin(_ contact: SKPhysicsContact) {
+        let combo = contact.bodyA.categoryBitMask | contact.bodyB.categoryBitMask
+
+        if combo == PhysicsCategory.player | PhysicsCategory.land {
+            playerIsOnGround = true
+            print("Player kena lantai!")
+        }
     }
     
-    func didBegin(_ contact: SKPhysicsContact) {
-        let collisionWithLand = contact.bodyA.categoryBitMask | contact.bodyB.categoryBitMask
+    func didEnd(_ contact: SKPhysicsContact) {
+        let combo = contact.bodyA.categoryBitMask | contact.bodyB.categoryBitMask
         
-        if collisionWithLand == PhysicsCategory.player | PhysicsCategory.land {
-            print("Player kena lantai!")
+        if combo == PhysicsCategory.player | PhysicsCategory.land {
+            playerIsOnGround = false
+            print("Player lompat")
         }
     }
 
     // MARK: -setup start
-    
+
+    func setupCharacterPhysicsBody(character: SKSpriteNode) -> SKPhysicsBody {
+        let physicsBody = SKPhysicsBody(
+            texture: character.texture!,
+            size: character.size
+        )
+        physicsBody.categoryBitMask = PhysicsCategory.player
+        physicsBody.collisionBitMask = PhysicsCategory.land
+        physicsBody.contactTestBitMask = PhysicsCategory.land
+        physicsBody.allowsRotation = false
+        physicsBody.isDynamic = true
+        physicsBody.affectedByGravity = true
+        return physicsBody
+    }
+
     func setupCharacters() {
         player = SKSpriteNode(texture: playerIdleFrames.first)
-        player.scale(to: CGSize(width: 500, height: 500))
-        player.physicsBody = SKPhysicsBody(texture: player.texture!, size: player.size)
-        player.physicsBody?.categoryBitMask = PhysicsCategory.player
-        player.physicsBody?.collisionBitMask = PhysicsCategory.land
-        player.physicsBody?.contactTestBitMask = PhysicsCategory.land
-        player.physicsBody?.isDynamic = true
-        player.physicsBody?.allowsRotation = false
-        player.physicsBody?.affectedByGravity = true
+        player.physicsBody = setupCharacterPhysicsBody(character: player)
         player.zPosition = 1
+        player.xScale = characterScale
+        player.yScale = characterScale
         addChild(player)
 
-        bot = SKSpriteNode(imageNamed: "bot_idle")
-        bot.position = CGPoint(x: size.width * 0.4, y: -size.height * 0.075)
+        bot = SKSpriteNode(texture: botIdleFrames.first)
+        bot.physicsBody = setupCharacterPhysicsBody(character: bot)
+        bot.position = CGPoint(x: size.width * 0.4, y: 0)
         bot.zPosition = 1
+        bot.xScale = -1.0 * characterScale
+        bot.yScale = characterScale
         addChild(bot)
+        startAnimationFrames(
+            frames: botIdleFrames,
+            key: botIdleAnimationKey,
+            character: bot,
+            loop: true
+        )
     }
 
-    func setupPlayerIdleFrames() {
-        let atlas = SKTextureAtlas(named: "PlayerIdle")
+    func setupAnimationFrames(name: String) -> [SKTexture] {
+        let atlas = SKTextureAtlas(named: name)
         let sortedNames = atlas.textureNames.sorted()
-        playerIdleFrames = sortedNames.map { atlas.textureNamed($0) }
+        return sortedNames.map { atlas.textureNamed($0) }
     }
-    
-    func setupPlayerAttackFrames() {
-        let atlas = SKTextureAtlas(named: "PlayerAttack1")
-        let sortedNames = atlas.textureNames.sorted()
-        playerAttack1Frames = sortedNames.map { atlas.textureNamed($0) }
-    }
-    
+
     func setupButtons() {
         buttonLeft.position = CGPoint(
             x: -size.width * 0.4,
@@ -138,7 +189,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         buttonLeft.scale(to: CGSize(width: 100, height: 100))
         buttonLeft.zPosition = 2
         addChild(buttonLeft)
-        
+
         buttonRight.position = CGPoint(
             x: -size.width * 0.3,
             y: -size.height * 0.2
@@ -147,30 +198,36 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         buttonRight.scale(to: CGSize(width: 100, height: 100))
         buttonRight.zPosition = 2
         addChild(buttonRight)
-        
-        buttonAttack.position = CGPoint(x: size.width * 0.3, y: -size.height * 0.2)
+
+        buttonAttack.position = CGPoint(
+            x: size.width * 0.3,
+            y: -size.height * 0.2
+        )
         buttonAttack.name = "attack"
         buttonAttack.scale(to: CGSize(width: 100, height: 100))
         buttonAttack.zPosition = 2
         addChild(buttonAttack)
-        
-        buttonJump.position = CGPoint(x: size.width * 0.4, y: -size.height * 0.2)
+
+        buttonJump.position = CGPoint(
+            x: size.width * 0.4,
+            y: -size.height * 0.2
+        )
         buttonJump.name = "jump"
         buttonJump.scale(to: CGSize(width: 100, height: 100))
         buttonJump.zPosition = 2
         addChild(buttonJump)
     }
-    
+
     func setupLand() {
         let landTexture = SKTexture(imageNamed: "land_0002")
         let landWidth = 100.0
         let landCount = Int(ceil(size.width / landWidth)) + 1
-        
+
         let earthTexture = SKTexture(imageNamed: "land_0004")
         let earthWidth: CGFloat = 100.0
-        
+
         var landContainerWidth: CGFloat = 0
-        
+
         for i in 0..<landCount {
             let land = SKSpriteNode(texture: landTexture)
             let earth = SKSpriteNode(texture: earthTexture)
@@ -181,7 +238,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
             earth.scale(to: CGSize(width: 100, height: 100))
             earth.zPosition = 1
             addChild(earth)
-            
+
             land.position = CGPoint(
                 x: CGFloat(i) * landWidth - size.width * 0.5,
                 y: -size.height * 0.23 + landWidth * 0.5
@@ -191,25 +248,51 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
             land.zPosition = 0
             addChild(land)
         }
-        
-        let landPhysicsBody = SKPhysicsBody(rectangleOf: CGSize(width: landContainerWidth, height: 100))
+
+        let landPhysicsBody = SKPhysicsBody(
+            rectangleOf: CGSize(width: landContainerWidth, height: 100)
+        )
         landPhysicsBody.isDynamic = false
         landPhysicsBody.categoryBitMask = PhysicsCategory.land
         landPhysicsBody.collisionBitMask = PhysicsCategory.player
         landPhysicsBody.contactTestBitMask = PhysicsCategory.player
         let landContainer = SKNode()
         landContainer.physicsBody = landPhysicsBody
-        landContainer.position = CGPoint(x: 0, y: -size.height * 0.23 + landWidth * 0.5)
+        landContainer.position = CGPoint(
+            x: 0,
+            y: -size.height * 0.25 + landWidth * 0.5
+        )
         addChild(landContainer)
     }
-    
+
     // MARK: -setup end
     
+    func changePlayerState(to newState: CharacterState) {
+        playerState = newState
+        player.removeAction(forKey: playerAnimationKey)
+        
+        switch playerState {
+            case .idle:
+                startAnimationFrames(frames: playerIdleFrames, key: playerAnimationKey, character: player, loop: true)
+            case .walk: break
+                
+            case .jump:
+                startAnimationFrames(frames: playerJumpFrames, key: playerAnimationKey, character: player, loop: false)
+            case .fall:
+                startAnimationFrames(frames: playerFallFrames, key: playerAnimationKey, character: player, loop: false)
+            case .attack1:
+                startAnimationFrames(frames: playerAttack1Frames, key: playerAnimationKey, character: player, loop: false)
+            case .attack2: break
+                
+            case .dead: break
+        }
+    }
+
     func moveBotTowardPlayer() {
         let move = SKAction.moveTo(x: player.position.x + 60, duration: 1.0)
         bot.run(move)
     }
-    
+
     func attackPlayer() {
         if bot.action(forKey: "attacking") == nil {
             let attack = SKAction.sequence([
@@ -222,48 +305,44 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
                 },
             ])
             bot.run(attack, withKey: "attacking")
-            
+
             if bot.frame.intersects(player.frame) {
                 print("Player kena pukul bot!")
             }
         }
     }
-    
+
     func playerHorizontalMove() {
         player.physicsBody?.velocity.dx = moveDirection * moveSpeed
     }
-    
-    func checkHit() {
-        if player.frame.intersects(bot.frame) {
-            print("Bot kena pukul!")
-            botHit()
-        }
-    }
-    
-    func botHit() {
-        // Kurangi health, animasi kena pukul, dll
-    }
 
-    func startPlayerIdleAnimation() {
-        let action = SKAction.animate(with: playerIdleFrames, timePerFrame: 0.1)
-        player.run(
-            SKAction.repeatForever(action),
-            withKey: "PLAYER_IDLE_ANIMATION"
+    func startAnimationFrames(
+        frames: [SKTexture],
+        key: String,
+        character: SKSpriteNode,
+        loop: Bool
+    ) {
+        let action = SKAction.animate(with: frames, timePerFrame: 0.1)
+        character.run(
+            loop ? SKAction.repeatForever(action) : action,
+            withKey: key
         )
     }
-    
+
     func playerJump() {
         if player.physicsBody?.velocity.dy != 0 { return }
         player.physicsBody?.velocity.dy = 0
-        player.physicsBody?.applyImpulse(CGVector(dx: 0, dy: 200))
-    }
-    
-    func playerAttack() {
-        let action = SKAction.animate(with: playerAttack1Frames, timePerFrame: 0.1)
-        player.run(action, withKey: "PLAYER_ATTACK1_ANIMATION")
+        player.physicsBody?.applyImpulse(CGVector(dx: 0, dy: jumpImpulse))
+        print("Player jump")
     }
 
-    
+    func playerAttack() {
+        playerCanAttack = true
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.6, execute: {
+            self.playerCanAttack = false
+        })
+    }
+
 }
 
 #if os(iOS) || os(tvOS)
@@ -277,16 +356,19 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
             for touch in touches {
                 let loc = touch.location(in: self)
                 let node = atPoint(loc)
+                
                 if node.name == "left" {
                     moveDirection = -1
+                    player.xScale = -1 * characterScale
                 } else if node.name == "right" {
                     moveDirection = 1
+                    player.xScale = 1 * characterScale
                 }
-                
+
                 if node.name == "jump" {
                     playerJump()
                 }
-                
+
                 if node.name == "attack" {
                     playerAttack()
                 }
