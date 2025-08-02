@@ -99,6 +99,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         physicsWorld.contactDelegate = self
         setupCharacters()
         setupLand()
+        setupBackground()
 
         #if os(iOS)
             setupButtons()
@@ -244,41 +245,100 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         }
     #endif
 
+    func setupBackground() {
+        var midSpriteNodes: [SKSpriteNode] = []
+        let bgCount = Int(ceil(size.width / 400)) + 1
+
+        #if os(iOS)
+            let verticalOffsetFraction: CGFloat = 0.3
+            let verticalHeightDistance: CGFloat = 50
+        #elseif os(macOS)
+            let verticalOffsetFraction: CGFloat = 0.46
+            let verticalHeightDistance: CGFloat = 100
+        #endif
+
+        let up = SKTexture(imageNamed: "bg_v1_up")
+        let upNode = SKSpriteNode(texture: up)
+        upNode.scale(
+            to: CGSize(width: size.width, height: verticalHeightDistance * 6)
+        )
+        upNode.position = CGPoint(x: 0, y: size.height * verticalOffsetFraction + (verticalHeightDistance * 0.5))
+        upNode.zPosition = -1
+        upNode.anchorPoint = CGPoint(x: 0.5, y: 1)
+        addChild(upNode)
+
+        let bot = SKTexture(imageNamed: "bg_v1_bot")
+        let botNode = SKSpriteNode(texture: bot)
+        botNode.scale(
+            to: CGSize(width: size.width, height: verticalHeightDistance * 3)
+        )
+        botNode.position = CGPoint(
+            x: 0,
+            y: size.height * verticalOffsetFraction
+                - (verticalHeightDistance * 6)
+        )
+        botNode.zPosition = -1
+        botNode.anchorPoint = CGPoint(x: 0.5, y: 1)
+        addChild(botNode)
+
+        for j in 0..<4 {
+            let mid = SKTexture(imageNamed: "bg_v1_mid_000\(j)")
+
+            let midNode = SKSpriteNode(texture: mid)
+            midNode.position = CGPoint(
+                x: CGFloat(j) * 100 - size.width * 0.5,
+                y: size.height * verticalOffsetFraction
+                    - (verticalHeightDistance * 6)
+            )
+            midNode.scale(to: CGSize(width: 100, height: 100))
+            midNode.zPosition = 0
+
+            midSpriteNodes.append(midNode)
+        }
+
+        for i in 0..<bgCount {
+            for node in midSpriteNodes {
+                let newNode = node.copy() as! SKSpriteNode
+                newNode.position.x += CGFloat(i * 400)
+                addChild(newNode)
+            }
+        }
+    }
+
     func setupLand() {
         let landTexture = SKTexture(imageNamed: "land_0002")
-        let landWidth = 100.0
-        let landCount = Int(ceil(size.width / landWidth)) + 1
+        let landCount = Int(ceil(size.width / 100)) + 1
 
         let earthTexture = SKTexture(imageNamed: "land_0004")
-        let earthWidth: CGFloat = 100.0
-        
+
         #if os(iOS)
-        let verticalOffsetFraction: CGFloat = 0.23
+            let verticalOffsetFraction: CGFloat = 0.19
         #elseif os(macOS)
-        let verticalOffsetFraction: CGFloat = 0.42
+            let verticalOffsetFraction: CGFloat = 0.4
         #endif
-        
 
         var landContainerWidth: CGFloat = 0
 
         for i in 0..<landCount {
             let land = SKSpriteNode(texture: landTexture)
             let earth = SKSpriteNode(texture: earthTexture)
+
+            land.position = CGPoint(
+                x: CGFloat(i) * 100 - size.width * 0.5,
+                y: -size.height * verticalOffsetFraction
+            )
+            landContainerWidth += 100
+            land.scale(to: CGSize(width: 100, height: 100))
+            land.zPosition = 0
+
             earth.position = CGPoint(
-                x: CGFloat(i) * earthWidth - size.width * 0.5,
-                y: -size.height * (verticalOffsetFraction + 0.08) + earthWidth * 0.5
+                x: CGFloat(i) * 100 - size.width * 0.5,
+                y: -size.height * verticalOffsetFraction - 85
             )
             earth.scale(to: CGSize(width: 100, height: 100))
             earth.zPosition = 1
-            addChild(earth)
 
-            land.position = CGPoint(
-                x: CGFloat(i) * landWidth - size.width * 0.5,
-                y: -size.height * verticalOffsetFraction + landWidth * 0.5
-            )
-            landContainerWidth += landWidth
-            land.scale(to: CGSize(width: 100, height: 100))
-            land.zPosition = 0
+            addChild(earth)
             addChild(land)
         }
 
@@ -293,7 +353,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         landContainer.physicsBody = landPhysicsBody
         landContainer.position = CGPoint(
             x: 0,
-            y: -size.height * (verticalOffsetFraction + 0.02) + landWidth * 0.5
+            y: -size.height * verticalOffsetFraction - 20
         )
         addChild(landContainer)
     }
