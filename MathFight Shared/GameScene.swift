@@ -10,6 +10,7 @@ import SpriteKit
 struct PhysicsCategory {
     static let player: UInt32 = 1 << 0  // 0001
     static let land: UInt32 = 1 << 1  // 0010
+    static let enemy: UInt32 = 1 << 2
 }
 
 class GameScene: SKScene, SKPhysicsContactDelegate {
@@ -40,9 +41,9 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     var moveDirection: CGFloat = 0.0
     let moveSpeed: CGFloat = 500.0
 
-    var bot: SKSpriteNode!
-    var botIdleFrames: [SKTexture] {
-        setupAnimationFrames(name: "BotIdle")
+    var enemy: SKSpriteNode!
+    var enemyRunFrames: [SKTexture] {
+        setupAnimationFrames(name: "EnemyRun")
     }
 
     #if os(iOS)
@@ -104,16 +105,20 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         #if os(iOS)
             setupButtons()
         #endif
+
+        let enemyGenerator = SKNode()
+        addChild(enemyGenerator)
+
+        let wait = SKAction.wait(forDuration: 1.0, withRange: 0.5)
+        let spawn = SKAction.run { [weak self] in
+            self?.spawnEnemy()
+        }
+        enemyGenerator.run(
+            SKAction.repeatForever(SKAction.sequence([wait, spawn]))
+        )
     }
 
     override func update(_ currentTime: TimeInterval) {
-        let distance = player.position.x - bot.position.x
-        if abs(distance) < 100 {
-            attackPlayer()
-        } else {
-            moveBotTowardPlayer()
-        }
-
         playerHorizontalMove()
 
         guard let playerPhysicsBody = player.physicsBody else { return }
@@ -138,6 +143,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
             print("player attack")
             changePlayerState(to: .attack1)
         }
+
     }
 
     func didBegin(_ contact: SKPhysicsContact) {
@@ -146,7 +152,18 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
 
         if combo == PhysicsCategory.player | PhysicsCategory.land {
             playerIsOnGround = true
-            print("Player kena lantai!")
+        }
+
+        if combo == PhysicsCategory.land | PhysicsCategory.enemy {
+            enumerateChildNodes(withName: "enemy") { node, _ in
+                if node.position.y < -node.frame.height {
+                    node.removeFromParent()
+                }
+            }
+        }
+
+        if combo == PhysicsCategory.player | PhysicsCategory.enemy {
+            print("player kena enemy")
         }
     }
 
@@ -156,7 +173,6 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
 
         if combo == PhysicsCategory.player | PhysicsCategory.land {
             playerIsOnGround = false
-            print("Player lompat")
         }
     }
 
@@ -184,19 +200,6 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         player.yScale = characterScale
         addChild(player)
 
-        bot = SKSpriteNode(texture: botIdleFrames.first)
-        bot.physicsBody = setupCharacterPhysicsBody(character: bot)
-        bot.position = CGPoint(x: size.width * 0.4, y: 0)
-        bot.zPosition = 1
-        bot.xScale = -1.0 * characterScale
-        bot.yScale = characterScale
-        addChild(bot)
-        startAnimationFrames(
-            frames: botIdleFrames,
-            key: botIdleAnimationKey,
-            character: bot,
-            loop: true
-        )
     }
 
     func setupAnimationFrames(name: String) -> [SKTexture] {
@@ -262,7 +265,11 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         upNode.scale(
             to: CGSize(width: size.width, height: verticalHeightDistance * 6)
         )
-        upNode.position = CGPoint(x: 0, y: size.height * verticalOffsetFraction + (verticalHeightDistance * 0.5))
+        upNode.position = CGPoint(
+            x: 0,
+            y: size.height * verticalOffsetFraction
+                + (verticalHeightDistance * 0.5)
+        )
         upNode.zPosition = -1
         upNode.anchorPoint = CGPoint(x: 0.5, y: 1)
         addChild(upNode)
@@ -412,30 +419,6 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         }
     }
 
-    func moveBotTowardPlayer() {
-        let move = SKAction.moveTo(x: player.position.x + 60, duration: 1.0)
-        bot.run(move)
-    }
-
-    func attackPlayer() {
-        if bot.action(forKey: "attacking") == nil {
-            let attack = SKAction.sequence([
-                SKAction.run {
-                    self.bot.texture = SKTexture(imageNamed: "bot_attack")
-                },
-                SKAction.wait(forDuration: 0.3),
-                SKAction.run {
-                    self.bot.texture = SKTexture(imageNamed: "bot_idle")
-                },
-            ])
-            bot.run(attack, withKey: "attacking")
-
-            if bot.frame.intersects(player.frame) {
-                print("Player kena pukul bot!")
-            }
-        }
-    }
-
     func playerHorizontalMove() {
         player.physicsBody?.velocity.dx = moveDirection * moveSpeed
     }
@@ -457,7 +440,6 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         if player.physicsBody?.velocity.dy != 0 { return }
         player.physicsBody?.velocity.dy = 0
         player.physicsBody?.applyImpulse(CGVector(dx: 0, dy: jumpImpulse))
-        print("Player jump")
     }
 
     func playerAttack() {
@@ -468,6 +450,37 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
                 self.playerCanAttack = false
             }
         )
+    }
+
+    func spawnEnemy() {
+        let enemy = SKSpriteNode(texture: enemyRunFrames.first)
+        enemy.name = "enemy"
+        enemy.setScale(3)
+
+        let physicsBody = SKPhysicsBody(circleOfRadius: enemy.size.width / 2)
+        physicsBody.isDynamic = true
+        physicsBody.allowsRotation = false
+        physicsBody.affectedByGravity = true
+        physicsBody.categoryBitMask = PhysicsCategory.enemy
+        physicsBody.collisionBitMask = PhysicsCategory.land
+        physicsBody.contactTestBitMask =
+            PhysicsCategory.player | PhysicsCategory.land
+        enemy.physicsBody = physicsBody
+
+        let x = Int.random(in: 0..<Int(size.width))
+        let y = Int(size.height) + Int(enemy.size.height)
+        enemy.position = CGPoint(x: x, y: y)
+        enemy.zPosition = 1
+
+        addChild(enemy)
+
+        let move = SKAction.moveBy(
+            x: 0,
+            y: -size.height - enemy.size.height * 2,
+            duration: size.height / 10
+        )
+        let remove = SKAction.removeFromParent()
+        enemy.run(SKAction.sequence([move, remove]))
     }
 
 }
