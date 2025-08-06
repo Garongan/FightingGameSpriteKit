@@ -32,8 +32,10 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     var playerRunFrames: [SKTexture] {
         setupAnimationFrames(name: "PlayerRun")
     }
-    var moveDirection: CGFloat = 0.0
+    var moveDirection: Int = 0
     let moveSpeed: CGFloat = 500.0
+    var randomPlayerAttackVersion: Int = 1
+    var lastDirection: Int = 1
 
     var enemy: SKSpriteNode!
     var enemyRunFrames: [SKTexture] {
@@ -124,8 +126,14 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
             && playerPhysicsBody.velocity.dx != 0 && !playerCanAttack
         {
             changePlayerState(to: .run)
-        } else if playerCanAttack && playerState != .attack1 {
+        } else if playerCanAttack && playerState != .attack1
+            && randomPlayerAttackVersion == 1
+        {
             changePlayerState(to: .attack1)
+        } else if playerCanAttack && playerState != .attack2
+            && randomPlayerAttackVersion == 2
+        {
+            changePlayerState(to: .attack2)
         }
 
         enumerateChildNodes(withName: "enemy") { node, _ in
@@ -165,9 +173,21 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
             } else if contact.bodyB.node?.name == "enemy" {
                 enemyNode = contact.bodyB.node
             }
-            enemyNode?.removeFromParent()
+
+            guard let enemyPosition = enemyNode?.position else { return }
+
+            if playerCanAttack
+                && ((player.xScale > 0 && enemyPosition.x > player.position.x)
+                    || (player.xScale < 0
+                        && enemyPosition.x < player.position.x))
+            {
+                enemyNode?.run(SKAction.sequence(
+                    [.colorize(with: .red, colorBlendFactor: 1.0, duration: 0.15), .wait(forDuration: 0.15), .removeFromParent()]
+                    )
+                )
+            }
         }
-        
+
         if combo == PhysicsCategory.land | PhysicsCategory.healthPlus {
             enumerateChildNodes(withName: "healthPlus") { node, _ in
                 DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
@@ -188,14 +208,33 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
 
     // MARK: -setup start
 
-    func setupCharacterPhysicsBody(character: SKSpriteNode) -> SKPhysicsBody {
-        let physicsBody = SKPhysicsBody(
-            texture: character.texture!,
-            size: character.size
-        )
+    func setupCharacterPhysicsBody(isAttackBody: Bool = false)
+        -> SKPhysicsBody
+    {
+        var physicsBody: SKPhysicsBody
+        if isAttackBody {
+            let attackTexture = SKTexture(
+                imageNamed: "player_attack_\(randomPlayerAttackVersion)_004\(lastDirection == -1 ? "_left" : "")"
+            )
+            physicsBody = SKPhysicsBody(
+                texture: attackTexture,
+                size: CGSize(
+                    width: attackTexture.size().width * characterScale,
+                    height: attackTexture.size().height * characterScale
+                )
+            )
+        } else {
+            physicsBody = SKPhysicsBody(
+                texture: playerIdleFrames.first!,
+                size: CGSize(
+                    width: playerIdleFrames.first!.size().width * characterScale,
+                    height: playerIdleFrames.first!.size().height * characterScale
+                )
+            )
+        }
         physicsBody.categoryBitMask = PhysicsCategory.player
-        physicsBody.collisionBitMask = PhysicsCategory.land
-        physicsBody.contactTestBitMask = PhysicsCategory.land
+        physicsBody.collisionBitMask = PhysicsCategory.land | PhysicsCategory.enemy
+        physicsBody.contactTestBitMask = PhysicsCategory.land | PhysicsCategory.enemy | PhysicsCategory.healthPlus
         physicsBody.allowsRotation = false
         physicsBody.isDynamic = true
         physicsBody.affectedByGravity = true
@@ -203,13 +242,13 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     }
 
     func setupCharacters() {
-        player = SKSpriteNode(texture: playerIdleFrames.first)
-        player.physicsBody = setupCharacterPhysicsBody(character: player)
+        player = SKSpriteNode(texture: playerIdleFrames.first, size: CGSize(
+            width: playerIdleFrames.first!.size().width * characterScale,
+            height: playerIdleFrames.first!.size().height * characterScale
+        ))
+        player.physicsBody = setupCharacterPhysicsBody()
         player.zPosition = 1
-        player.xScale = characterScale
-        player.yScale = characterScale
         addChild(player)
-
     }
 
     func setupAnimationFrames(name: String) -> [SKTexture] {
@@ -390,8 +429,6 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         )
         landPhysicsBody.isDynamic = false
         landPhysicsBody.categoryBitMask = PhysicsCategory.land
-        landPhysicsBody.collisionBitMask = PhysicsCategory.player
-        landPhysicsBody.contactTestBitMask = PhysicsCategory.player
         let landContainer = SKNode()
         landContainer.physicsBody = landPhysicsBody
         landContainer.position = CGPoint(
@@ -441,14 +478,16 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
                 frames: playerAttack1Frames,
                 key: playerAnimationKey,
                 character: player,
-                loop: false
+                loop: false,
+                timePerFrame: 0.03
             )
         case .attack2:
             startAnimationFrames(
                 frames: playerAttack2Frames,
                 key: playerAnimationKey,
                 character: player,
-                loop: false
+                loop: false,
+                timePerFrame: 0.03
             )
 
         case .dead: break
@@ -457,18 +496,19 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
 
     func playerHorizontalMove() {
         if moveDirection != 0 && !playerCanAttack {
-            player.xScale = moveDirection * characterScale
+            player.xScale = CGFloat(moveDirection)
         }
-        player.physicsBody?.velocity.dx = moveDirection * moveSpeed
+        player.physicsBody?.velocity.dx = CGFloat(moveDirection) * moveSpeed
     }
 
     func startAnimationFrames(
         frames: [SKTexture],
         key: String,
         character: SKSpriteNode,
-        loop: Bool
+        loop: Bool,
+        timePerFrame: TimeInterval = 0.1
     ) {
-        let action = SKAction.animate(with: frames, timePerFrame: 0.1)
+        let action = SKAction.animate(with: frames, timePerFrame: timePerFrame)
         character.run(
             loop ? SKAction.repeatForever(action) : action,
             withKey: key
@@ -483,10 +523,13 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
 
     func playerAttack() {
         playerCanAttack = true
+        randomPlayerAttackVersion = randomPlayerAttackVersion == 1 ? 2 : 1
+        player.physicsBody = setupCharacterPhysicsBody(isAttackBody: true)
         DispatchQueue.main.asyncAfter(
-            deadline: .now() + 0.6,
+            deadline: .now() + 0.3,
             execute: {
                 self.playerCanAttack = false
+                self.player.physicsBody = self.setupCharacterPhysicsBody()
             }
         )
     }
@@ -501,9 +544,8 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         physicsBody.allowsRotation = false
         physicsBody.affectedByGravity = true
         physicsBody.categoryBitMask = PhysicsCategory.enemy
-        physicsBody.collisionBitMask = PhysicsCategory.land
-        physicsBody.contactTestBitMask =
-            PhysicsCategory.player | PhysicsCategory.land
+        physicsBody.collisionBitMask = PhysicsCategory.player
+        physicsBody.contactTestBitMask = PhysicsCategory.player
         enemy.physicsBody = physicsBody
 
         let x = Int.random(in: -Int(size.width)..<Int(size.width))
@@ -531,7 +573,8 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         physicsBody.allowsRotation = false
         physicsBody.affectedByGravity = true
         physicsBody.categoryBitMask = PhysicsCategory.healthPlus
-        physicsBody.collisionBitMask = PhysicsCategory.land
+        physicsBody.collisionBitMask =
+            PhysicsCategory.player | PhysicsCategory.land
         physicsBody.contactTestBitMask =
             PhysicsCategory.player | PhysicsCategory.land
         healthPlus.physicsBody = physicsBody
@@ -560,8 +603,10 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
 
                 if node.name == "left" {
                     moveDirection = -1
+                    lastDirection = -1
                 } else if node.name == "right" {
                     moveDirection = 1
+                    lastDirection = 1
                 }
 
                 if node.name == "jump" {
@@ -634,14 +679,10 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         private func updateForKeyboard() {
             if pressedKeys.contains(KeyInput.a) {
                 moveDirection = -1
-                if !playerCanAttack {
-                    player.xScale = -1 * characterScale
-                }
+                lastDirection = -1
             } else if pressedKeys.contains(KeyInput.d) {
                 moveDirection = 1
-                if !playerCanAttack {
-                    player.xScale = 1 * characterScale
-                }
+                lastDirection = 1
             }
 
             if !pressedKeys.contains(KeyInput.a)
@@ -650,7 +691,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
                 moveDirection = 0
             }
 
-            if pressedKeys.contains(KeyInput.w) {
+            if pressedKeys.contains(KeyInput.j) {
                 playerJump()
             }
 
