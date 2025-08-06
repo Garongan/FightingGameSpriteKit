@@ -32,15 +32,21 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     var playerRunFrames: [SKTexture] {
         setupAnimationFrames(name: "PlayerRun")
     }
+    var playerTakeHit: [SKTexture] {
+        setupAnimationFrames(name: "PlayerTakeHit")
+    }
     var moveDirection: Int = 0
-    let moveSpeed: CGFloat = 500.0
     var randomPlayerAttackVersion: Int = 1
     var lastDirection: Int = 1
+    var isPlayerTakeHit = false
+    var hp = 100
 
     var enemy: SKSpriteNode!
     var enemyRunFrames: [SKTexture] {
         setupAnimationFrames(name: "EnemyRun")
     }
+    
+    var hpLabelNode: SKLabelNode!
 
     #if os(iOS)
         let buttonLeft = SKSpriteNode(
@@ -81,13 +87,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         return scene
     }
 
-    func setUpScene() {
-
-    }
-
     override func didMove(to view: SKView) {
-        self.setUpScene()
-
         #if os(macOS)
             view.window?.makeFirstResponder(self)
         #endif
@@ -104,6 +104,23 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
 
         setupEnemy()
         setupHealthPlus()
+
+        hpLabelNode = SKLabelNode()
+        hpLabelNode.fontSize = 54
+        #if os(iOS)
+        hpLabelNode.position = CGPoint(
+            x: -size.width * 0.4,
+            y: size.height * 0.2
+        )
+        #elseif os(macOS)
+        hpLabelNode.position = CGPoint(
+            x: -size.width * 0.4,
+            y: size.height * 0.4
+        )
+        #endif
+        hpLabelNode.fontColor = .black
+        hpLabelNode.text = "HP: \(hp)"
+        addChild(hpLabelNode)
     }
 
     override func update(_ currentTime: TimeInterval) {
@@ -111,29 +128,33 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         guard let playerPhysicsBody = player.physicsBody else { return }
 
         if !playerIsOnGround && playerPhysicsBody.velocity.dy < 0
-            && playerState != .fall && !playerCanAttack
+            && playerState != .fall && !playerCanAttack && !isPlayerTakeHit
         {
             changePlayerState(to: .fall)
         } else if !playerIsOnGround && playerPhysicsBody.velocity.dy > 0
-            && playerState != .jump && !playerCanAttack
+            && playerState != .jump && !playerCanAttack && !isPlayerTakeHit
         {
             changePlayerState(to: .jump)
         } else if playerIsOnGround && playerState != .idle
             && playerPhysicsBody.velocity.dx == 0 && !playerCanAttack
+            && !isPlayerTakeHit
         {
             changePlayerState(to: .idle)
         } else if playerIsOnGround && playerState != .run
             && playerPhysicsBody.velocity.dx != 0 && !playerCanAttack
+            && !isPlayerTakeHit
         {
             changePlayerState(to: .run)
-        } else if playerCanAttack && playerState != .attack1
+        } else if playerCanAttack && playerState != .attack1 && !isPlayerTakeHit
             && randomPlayerAttackVersion == 1
         {
             changePlayerState(to: .attack1)
-        } else if playerCanAttack && playerState != .attack2
+        } else if playerCanAttack && playerState != .attack2 && !isPlayerTakeHit
             && randomPlayerAttackVersion == 2
         {
             changePlayerState(to: .attack2)
+        } else if isPlayerTakeHit && playerState != .takeHit {
+            changePlayerState(to: .takeHit)
         }
 
         enumerateChildNodes(withName: "enemy") { node, _ in
@@ -181,10 +202,19 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
                     || (player.xScale < 0
                         && enemyPosition.x < player.position.x))
             {
-                enemyNode?.run(SKAction.sequence(
-                    [.colorize(with: .red, colorBlendFactor: 1.0, duration: 0.15), .wait(forDuration: 0.15), .removeFromParent()]
+                enemyNode?.run(
+                    SKAction.sequence(
+                        [
+                            .colorize(
+                                with: .red,
+                                colorBlendFactor: 1.0,
+                                duration: 0.15
+                            ), .wait(forDuration: 0.15), .removeFromParent(),
+                        ]
                     )
                 )
+            } else {
+                handlePlayerTakeHit()
             }
         }
 
@@ -194,6 +224,18 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
                     node.removeFromParent()
                 }
             }
+        }
+
+        if combo == PhysicsCategory.player | PhysicsCategory.healthPlus {
+            var healthPlusNode: SKNode?
+            if contact.bodyA.node?.name == "healthPlus" {
+                healthPlusNode = contact.bodyA.node
+            } else if contact.bodyB.node?.name == "healthPlus" {
+                healthPlusNode = contact.bodyB.node
+            }
+            healthPlusNode?.removeFromParent()
+            hp += 10
+            hpLabelNode.text = "HP: \(hp)"
         }
     }
 
@@ -214,7 +256,8 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         var physicsBody: SKPhysicsBody
         if isAttackBody {
             let attackTexture = SKTexture(
-                imageNamed: "player_attack_\(randomPlayerAttackVersion)_004\(lastDirection == -1 ? "_left" : "")"
+                imageNamed:
+                    "player_attack_\(randomPlayerAttackVersion)_004\(lastDirection == -1 ? "_left" : "")"
             )
             physicsBody = SKPhysicsBody(
                 texture: attackTexture,
@@ -227,14 +270,19 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
             physicsBody = SKPhysicsBody(
                 texture: playerIdleFrames.first!,
                 size: CGSize(
-                    width: playerIdleFrames.first!.size().width * characterScale,
-                    height: playerIdleFrames.first!.size().height * characterScale
+                    width: playerIdleFrames.first!.size().width
+                        * characterScale,
+                    height: playerIdleFrames.first!.size().height
+                        * characterScale
                 )
             )
         }
         physicsBody.categoryBitMask = PhysicsCategory.player
-        physicsBody.collisionBitMask = PhysicsCategory.land | PhysicsCategory.enemy
-        physicsBody.contactTestBitMask = PhysicsCategory.land | PhysicsCategory.enemy | PhysicsCategory.healthPlus
+        physicsBody.collisionBitMask =
+            PhysicsCategory.land | PhysicsCategory.enemy
+        physicsBody.contactTestBitMask =
+            PhysicsCategory.land | PhysicsCategory.enemy
+            | PhysicsCategory.healthPlus
         physicsBody.allowsRotation = false
         physicsBody.isDynamic = true
         physicsBody.affectedByGravity = true
@@ -242,10 +290,13 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     }
 
     func setupCharacters() {
-        player = SKSpriteNode(texture: playerIdleFrames.first, size: CGSize(
-            width: playerIdleFrames.first!.size().width * characterScale,
-            height: playerIdleFrames.first!.size().height * characterScale
-        ))
+        player = SKSpriteNode(
+            texture: playerIdleFrames.first,
+            size: CGSize(
+                width: playerIdleFrames.first!.size().width * characterScale,
+                height: playerIdleFrames.first!.size().height * characterScale
+            )
+        )
         player.physicsBody = setupCharacterPhysicsBody()
         player.zPosition = 1
         addChild(player)
@@ -489,7 +540,13 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
                 loop: false,
                 timePerFrame: 0.03
             )
-
+        case .takeHit:
+            startAnimationFrames(
+                frames: playerTakeHit,
+                key: playerAnimationKey,
+                character: player,
+                loop: false
+            )
         case .dead: break
         }
     }
@@ -532,6 +589,15 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
                 self.player.physicsBody = self.setupCharacterPhysicsBody()
             }
         )
+    }
+
+    func handlePlayerTakeHit() {
+        isPlayerTakeHit = true
+        hp -= 10
+        hpLabelNode.text = "HP: \(hp)"
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+            self.isPlayerTakeHit = false
+        }
     }
 
     func spawnEnemy() {

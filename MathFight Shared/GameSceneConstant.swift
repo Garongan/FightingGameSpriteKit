@@ -16,14 +16,14 @@ struct PhysicsCategory {
 
 /// Player constant
 let playerAnimationKey = "PLAYER_ANIMATION_KEY"
-
+let moveSpeed: CGFloat = 500.0
 enum CharacterState {
-    case idle, run, jump, fall, attack1, attack2, dead
+    case idle, run, jump, fall, attack1, attack2, dead, takeHit
 }
 
 /// Enemy constant
 let enemySpeed: CGFloat = 200
 
 /// Shared constant
-let jumpImpulse: CGFloat = 30
+let jumpImpulse: CGFloat = 120
 let characterScale = CGFloat(2)
