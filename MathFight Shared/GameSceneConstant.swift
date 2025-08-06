@@ -7,6 +7,13 @@
 
 import Foundation
 
+struct PhysicsCategory {
+    static let player: UInt32 = 1 << 0  // 0001
+    static let land: UInt32 = 1 << 1  // 0010
+    static let enemy: UInt32 = 1 << 2
+    static let healthPlus: UInt32 = 1 << 3
+}
+
 /// Player constant
 let playerAnimationKey = "PLAYER_ANIMATION_KEY"
 

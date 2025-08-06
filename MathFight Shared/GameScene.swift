@@ -7,12 +7,6 @@
 
 import SpriteKit
 
-struct PhysicsCategory {
-    static let player: UInt32 = 1 << 0  // 0001
-    static let land: UInt32 = 1 << 1  // 0010
-    static let enemy: UInt32 = 1 << 2
-}
-
 class GameScene: SKScene, SKPhysicsContactDelegate {
     var pressedKeys = Set<UInt16>()
 
@@ -106,16 +100,8 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
             setupButtons()
         #endif
 
-        let enemyGenerator = SKNode()
-        addChild(enemyGenerator)
-
-        let wait = SKAction.wait(forDuration: 1.0, withRange: 0.5)
-        let spawn = SKAction.run { [weak self] in
-            self?.spawnEnemy()
-        }
-        enemyGenerator.run(
-            SKAction.repeatForever(SKAction.sequence([wait, spawn]))
-        )
+        setupEnemy()
+        setupHealthPlus()
     }
 
     override func update(_ currentTime: TimeInterval) {
@@ -173,7 +159,6 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         }
 
         if combo == PhysicsCategory.player | PhysicsCategory.enemy {
-            print("player kena enemy")
             var enemyNode: SKNode?
             if contact.bodyA.node?.name == "enemy" {
                 enemyNode = contact.bodyA.node
@@ -181,6 +166,14 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
                 enemyNode = contact.bodyB.node
             }
             enemyNode?.removeFromParent()
+        }
+        
+        if combo == PhysicsCategory.land | PhysicsCategory.healthPlus {
+            enumerateChildNodes(withName: "healthPlus") { node, _ in
+                DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+                    node.removeFromParent()
+                }
+            }
         }
     }
 
@@ -223,6 +216,32 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         let atlas = SKTextureAtlas(named: name)
         let sortedNames = atlas.textureNames.sorted()
         return sortedNames.map { atlas.textureNamed($0) }
+    }
+
+    func setupEnemy() {
+        let enemyGenerator = SKNode()
+        addChild(enemyGenerator)
+
+        let wait = SKAction.wait(forDuration: 1.0, withRange: 0.5)
+        let spawn = SKAction.run { [weak self] in
+            self?.spawnEnemy()
+        }
+        enemyGenerator.run(
+            SKAction.repeatForever(SKAction.sequence([wait, spawn]))
+        )
+    }
+
+    func setupHealthPlus() {
+        let healthPlusGenerator = SKNode()
+        addChild(healthPlusGenerator)
+
+        let wait = SKAction.wait(forDuration: 2.0, withRange: 1.5)
+        let spawn = SKAction.run { [weak self] in
+            self?.spawnHealthPlus()
+        }
+        healthPlusGenerator.run(
+            SKAction.repeatForever(SKAction.sequence([wait, spawn]))
+        )
     }
 
     #if os(iOS)
@@ -498,6 +517,31 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
             )
         )
         addChild(enemy)
+    }
+
+    func spawnHealthPlus() {
+        let healthPlus = SKSpriteNode(imageNamed: "health_plus")
+        healthPlus.name = "healthPlus"
+        healthPlus.setScale(characterScale)
+
+        let physicsBody = SKPhysicsBody(
+            circleOfRadius: healthPlus.size.width / 2
+        )
+        physicsBody.isDynamic = true
+        physicsBody.allowsRotation = false
+        physicsBody.affectedByGravity = true
+        physicsBody.categoryBitMask = PhysicsCategory.healthPlus
+        physicsBody.collisionBitMask = PhysicsCategory.land
+        physicsBody.contactTestBitMask =
+            PhysicsCategory.player | PhysicsCategory.land
+        healthPlus.physicsBody = physicsBody
+
+        let x = Int.random(in: -Int(size.width)..<Int(size.width))
+        let y = Int(size.height) + Int(healthPlus.size.height)
+        healthPlus.position = CGPoint(x: x, y: y)
+        healthPlus.zPosition = 1
+
+        addChild(healthPlus)
     }
 
 }

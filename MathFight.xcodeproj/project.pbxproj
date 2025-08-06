@@ -28,12 +28,14 @@
 				Resources/Sprites/Background/Verse1/bg_v1_mid_0001.png,
 				Resources/Sprites/Background/Verse1/bg_v1_up.png,
 				Resources/Sprites/Enemy/EnemyRun.atlas,
+				Resources/Sprites/Health/health_plus.png,
 				Resources/Sprites/Player/PlayerAttack1.atlas,
 				Resources/Sprites/Player/PlayerAttack2.atlas,
 				Resources/Sprites/Player/PlayerFall.atlas,
 				Resources/Sprites/Player/PlayerIdle.atlas,
 				Resources/Sprites/Player/PlayerJump.atlas,
 				Resources/Sprites/Player/PlayerRun.atlas,
+				TestView.swift,
 			);
 			target = BDBBCD002E3BA95F0068E6F1 /* MathFight iOS */;
 		};
@@ -52,12 +54,14 @@
 				Resources/Sprites/Background/Verse1/bg_v1_mid_0001.png,
 				Resources/Sprites/Background/Verse1/bg_v1_up.png,
 				Resources/Sprites/Enemy/EnemyRun.atlas,
+				Resources/Sprites/Health/health_plus.png,
 				Resources/Sprites/Player/PlayerAttack1.atlas,
 				Resources/Sprites/Player/PlayerAttack2.atlas,
 				Resources/Sprites/Player/PlayerFall.atlas,
 				Resources/Sprites/Player/PlayerIdle.atlas,
 				Resources/Sprites/Player/PlayerJump.atlas,
 				Resources/Sprites/Player/PlayerRun.atlas,
+				TestView.swift,
 			);
 			target = BDBBCD112E3BA95F0068E6F1 /* MathFight tvOS */;
 		};
@@ -76,12 +80,14 @@
 				Resources/Sprites/Background/Verse1/bg_v1_mid_0001.png,
 				Resources/Sprites/Background/Verse1/bg_v1_up.png,
 				Resources/Sprites/Enemy/EnemyRun.atlas,
+				Resources/Sprites/Health/health_plus.png,
 				Resources/Sprites/Player/PlayerAttack1.atlas,
 				Resources/Sprites/Player/PlayerAttack2.atlas,
 				Resources/Sprites/Player/PlayerFall.atlas,
 				Resources/Sprites/Player/PlayerIdle.atlas,
 				Resources/Sprites/Player/PlayerJump.atlas,
 				Resources/Sprites/Player/PlayerRun.atlas,
+				TestView.swift,
 			);
 			target = BDBBCD212E3BA95F0068E6F1 /* MathFight macOS */;
 		};
