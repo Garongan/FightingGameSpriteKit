@@ -172,6 +172,10 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
                 node.position.y += vy
             }
         }
+        
+        if hp <= 0 {
+            showGameOverOverlay()
+        }
 
     }
 
@@ -593,7 +597,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
 
     func handlePlayerTakeHit() {
         isPlayerTakeHit = true
-        hp -= 10
+        hp -= 1
         hpLabelNode.text = "HP: \(hp)"
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
             self.isPlayerTakeHit = false
@@ -652,6 +656,37 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
 
         addChild(healthPlus)
     }
+    
+    func showGameOverOverlay() {
+        // 1. Block input & physics
+        isPaused = true
+        
+        // 2. Buat overlay node
+        let overlay = SKSpriteNode(color: .black, size: size)
+        overlay.alpha = 0.7
+        overlay.zPosition = 1000
+        overlay.position = CGPoint(x: frame.midX, y: frame.midY)
+        overlay.name = "GameOverOverlay"
+        addChild(overlay)
+        
+        // 3. Tambahkan label Game Over
+        let label = SKLabelNode(text: "GAME OVER")
+        label.fontSize = 64
+        label.fontColor = .white
+        label.position = .zero
+        label.zPosition = 1001
+        overlay.addChild(label)
+        
+        // 4. Tambahkan tombol Restart jika mau
+        let restart = SKLabelNode(text: "Tap to Retry")
+        restart.fontSize = 32
+        restart.fontColor = .white
+        restart.position = CGPoint(x: 0, y: -100)
+        restart.name = "Restart"
+        restart.zPosition = 1001
+        overlay.addChild(restart)
+    }
+
 
 }
 
