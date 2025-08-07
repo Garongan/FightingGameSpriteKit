@@ -13,6 +13,13 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		BD5B735E2E44AB3F009974B7 /* Exceptions for "MathFight iOS" folder in "MathFight iOS" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				"MathFight-iOS-Info.plist",
+			);
+			target = BDBBCD002E3BA95F0068E6F1 /* MathFight iOS */;
+		};
 		BDBBCD382E3BA95F0068E6F1 /* Exceptions for "MathFight Shared" folder in "MathFight iOS" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
@@ -21,6 +28,7 @@
 				GameScene.swift,
 				GameSceneConstant.swift,
 				Resources/Assets.xcassets,
+				"Resources/Font/PixeloidSans-Bold.ttf",
 				Resources/Sprites/Background/land_0002.png,
 				Resources/Sprites/Background/land_0004.png,
 				Resources/Sprites/Background/Verse1/bg_v1_bot.png,
@@ -48,6 +56,7 @@
 				GameScene.swift,
 				GameSceneConstant.swift,
 				Resources/Assets.xcassets,
+				"Resources/Font/PixeloidSans-Bold.ttf",
 				Resources/Sprites/Background/land_0002.png,
 				Resources/Sprites/Background/land_0004.png,
 				Resources/Sprites/Background/Verse1/bg_v1_bot.png,
@@ -75,6 +84,7 @@
 				GameScene.swift,
 				GameSceneConstant.swift,
 				Resources/Assets.xcassets,
+				"Resources/Font/PixeloidSans-Bold.ttf",
 				Resources/Sprites/Background/land_0002.png,
 				Resources/Sprites/Background/land_0004.png,
 				Resources/Sprites/Background/Verse1/bg_v1_bot.png,
@@ -109,6 +119,9 @@
 		};
 		BDBBCD032E3BA95F0068E6F1 /* MathFight iOS */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				BD5B735E2E44AB3F009974B7 /* Exceptions for "MathFight iOS" folder in "MathFight iOS" target */,
+			);
 			path = "MathFight iOS";
 			sourceTree = "<group>";
 		};
@@ -339,6 +352,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = V793ZTK7Y4;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "MathFight-iOS-Info.plist";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.action-games";
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
@@ -370,6 +384,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = V793ZTK7Y4;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "MathFight-iOS-Info.plist";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.action-games";
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;

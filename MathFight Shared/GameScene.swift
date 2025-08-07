@@ -106,11 +106,11 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         setupEnemy()
         setupHealthPlus()
 
-        hpLabelNode = SKLabelNode()
+        hpLabelNode = SKLabelNode(fontNamed: "PixeloidSans-Bold")
         hpLabelNode.fontSize = 54
         #if os(iOS)
         hpLabelNode.position = CGPoint(
-            x: -size.width * 0.4,
+            x: -size.width * 0.44,
             y: size.height * 0.2
         )
         #elseif os(macOS)
@@ -119,8 +119,8 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
             y: size.height * 0.4
         )
         #endif
-        hpLabelNode.fontColor = .black
         hpLabelNode.text = "HP: \(hp)"
+        hpLabelNode.horizontalAlignmentMode = .left
         addChild(hpLabelNode)
     }
 
@@ -678,20 +678,20 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         addChild(overlay)
         
         // 3. Tambahkan label Game Over
-        let label = SKLabelNode(text: "GAME OVER")
+        let label = SKLabelNode(fontNamed: "PixeloidSans-Bold")
+        label.text = "Game Over"
         label.fontSize = 64
-        label.fontColor = .white
         label.position = .zero
-        label.zPosition = 1001
+        label.zPosition = 11
         overlay.addChild(label)
         
         // 4. Tambahkan tombol Restart jika mau
-        let restart = SKLabelNode(text: "Tap to Retry")
+        let restart = SKLabelNode(fontNamed: "PixeloidSans-Bold")
+        restart.text = "Tap to Restart"
         restart.fontSize = 32
-        restart.fontColor = .white
         restart.position = CGPoint(x: 0, y: -100)
         restart.name = "Restart"
-        restart.zPosition = 1001
+        restart.zPosition = 11
         overlay.addChild(restart)
         
         isGameOver = true
