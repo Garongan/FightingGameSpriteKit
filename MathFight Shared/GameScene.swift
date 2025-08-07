@@ -47,6 +47,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     }
     
     var hpLabelNode: SKLabelNode!
+    var isGameOver: Bool = false
 
     #if os(iOS)
         let buttonLeft = SKSpriteNode(
@@ -250,6 +251,12 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         if combo == PhysicsCategory.player | PhysicsCategory.land {
             playerIsOnGround = false
         }
+    }
+    
+    override func willMove(from view: SKView) {
+        self.removeAllActions()
+        self.removeAllChildren()
+        physicsWorld.contactDelegate = nil
     }
 
     // MARK: -setup start
@@ -534,7 +541,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
                 key: playerAnimationKey,
                 character: player,
                 loop: false,
-                timePerFrame: 0.03
+                timePerFrame: 0.01
             )
         case .attack2:
             startAnimationFrames(
@@ -542,14 +549,15 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
                 key: playerAnimationKey,
                 character: player,
                 loop: false,
-                timePerFrame: 0.03
+                timePerFrame: 0.01
             )
         case .takeHit:
             startAnimationFrames(
                 frames: playerTakeHit,
                 key: playerAnimationKey,
                 character: player,
-                loop: false
+                loop: false,
+                timePerFrame: 0.01
             )
         case .dead: break
         }
@@ -587,7 +595,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         randomPlayerAttackVersion = randomPlayerAttackVersion == 1 ? 2 : 1
         player.physicsBody = setupCharacterPhysicsBody(isAttackBody: true)
         DispatchQueue.main.asyncAfter(
-            deadline: .now() + 0.3,
+            deadline: .now() + 0.1,
             execute: {
                 self.playerCanAttack = false
                 self.player.physicsBody = self.setupCharacterPhysicsBody()
@@ -599,7 +607,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         isPlayerTakeHit = true
         hp -= 1
         hpLabelNode.text = "HP: \(hp)"
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
             self.isPlayerTakeHit = false
         }
     }
@@ -664,7 +672,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         // 2. Buat overlay node
         let overlay = SKSpriteNode(color: .black, size: size)
         overlay.alpha = 0.7
-        overlay.zPosition = 1000
+        overlay.zPosition = 10
         overlay.position = CGPoint(x: frame.midX, y: frame.midY)
         overlay.name = "GameOverOverlay"
         addChild(overlay)
@@ -685,6 +693,17 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         restart.name = "Restart"
         restart.zPosition = 1001
         overlay.addChild(restart)
+        
+        isGameOver = true
+    }
+    
+    func restartGame() {
+        isGameOver = false
+        isPaused = false
+        
+        let gameScene = GameScene.newGameScene()
+        let transition = SKTransition.fade(withDuration: 0.5)
+        view?.presentScene(gameScene, transition: transition)
     }
 
 
@@ -717,6 +736,10 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
                 if node.name == "attack" {
                     playerAttack()
                 }
+            }
+            
+            if isGameOver {
+                restartGame()
             }
         }
 
@@ -755,6 +778,9 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     extension GameScene {
 
         override func mouseDown(with event: NSEvent) {
+            if isGameOver {
+                restartGame()
+            }
         }
 
         override func mouseDragged(with event: NSEvent) {
