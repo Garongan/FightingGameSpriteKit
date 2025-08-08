@@ -5,49 +5,35 @@
 //  Created by Alvindo Tri Jatmiko on 31/07/25.
 //
 
+import GameplayKit
 import SpriteKit
 
 class GameScene: SKScene, SKPhysicsContactDelegate {
     var pressedKeys = Set<UInt16>()
 
-    var player: SKSpriteNode!
-    var playerState: CharacterState = .idle
-    var playerIsOnGround: Bool = false
-    var playerCanAttack: Bool = false
-    var playerIdleFrames: [SKTexture] {
-        setupAnimationFrames(name: "PlayerIdle")
-    }
-    var playerAttack1Frames: [SKTexture] {
-        setupAnimationFrames(name: "PlayerAttack1")
-    }
-    var playerAttack2Frames: [SKTexture] {
-        setupAnimationFrames(name: "PlayerAttack2")
-    }
-    var playerJumpFrames: [SKTexture] {
-        setupAnimationFrames(name: "PlayerJump")
-    }
-    var playerFallFrames: [SKTexture] {
-        setupAnimationFrames(name: "PlayerFall")
-    }
-    var playerRunFrames: [SKTexture] {
-        setupAnimationFrames(name: "PlayerRun")
-    }
-    var playerTakeHit: [SKTexture] {
-        setupAnimationFrames(name: "PlayerTakeHit")
-    }
-    var moveDirection: Int = 0
-    var randomPlayerAttackVersion: Int = 1
-    var lastDirection: Int = 1
-    var isPlayerTakeHit = false
-    var hp = 100
-
     var enemy: SKSpriteNode!
     var enemyRunFrames: [SKTexture] {
         setupAnimationFrames(name: "EnemyRun")
     }
-    
+
     var hpLabelNode: SKLabelNode!
     var isGameOver: Bool = false
+
+    var entities = [GKEntity]()
+    lazy var playerSpriteSystem = GKComponentSystem(
+        componentClass: SpriteComponent.self
+    )
+    lazy var playerPhysicsSystem = GKComponentSystem(
+        componentClass: PhysicsComponent.self
+    )
+    lazy var playerControlSystem = GKComponentSystem(
+        componentClass: PlayerControlSystem.self
+    )
+    lazy var playerAnimationSystem = GKComponentSystem(
+        componentClass: PlayerAnimationSystem.self
+    )
+
+    private var lastUpdateTime: TimeInterval?
 
     #if os(iOS)
         let buttonLeft = SKSpriteNode(
@@ -95,7 +81,20 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
 
         physicsWorld.gravity = CGVector(dx: 0, dy: -9.8)
         physicsWorld.contactDelegate = self
-        setupCharacters()
+        //        setupCharacters()
+
+        let player = PlayerEntity()
+        entities.append(player)
+        for system in [
+            playerSpriteSystem, playerPhysicsSystem, playerControlSystem,
+            playerAnimationSystem,
+        ] {
+            system.addComponent(foundIn: player)
+        }
+        PlayerState.shared.node =
+            player.component(ofType: SpriteComponent.self)!.node
+        addChild(PlayerState.shared.node)
+
         setupLand()
         setupBackground()
 
@@ -109,58 +108,35 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         hpLabelNode = SKLabelNode(fontNamed: "PixeloidSans-Bold")
         hpLabelNode.fontSize = 54
         #if os(iOS)
-        hpLabelNode.position = CGPoint(
-            x: -size.width * 0.44,
-            y: size.height * 0.2
-        )
+            hpLabelNode.position = CGPoint(
+                x: -size.width * 0.44,
+                y: size.height * 0.2
+            )
         #elseif os(macOS)
-        hpLabelNode.position = CGPoint(
-            x: -size.width * 0.4,
-            y: size.height * 0.4
-        )
+            hpLabelNode.position = CGPoint(
+                x: -size.width * 0.4,
+                y: size.height * 0.4
+            )
         #endif
-        hpLabelNode.text = "HP: \(hp)"
+        hpLabelNode.text = "HP: \(PlayerState.shared.hp)"
         hpLabelNode.horizontalAlignmentMode = .left
         addChild(hpLabelNode)
     }
 
     override func update(_ currentTime: TimeInterval) {
-        playerHorizontalMove()
-        guard let playerPhysicsBody = player.physicsBody else { return }
+        let deltaTime = currentTime - (lastUpdateTime ?? currentTime)
+        lastUpdateTime = currentTime
 
-        if !playerIsOnGround && playerPhysicsBody.velocity.dy < 0
-            && playerState != .fall && !playerCanAttack && !isPlayerTakeHit
-        {
-            changePlayerState(to: .fall)
-        } else if !playerIsOnGround && playerPhysicsBody.velocity.dy > 0
-            && playerState != .jump && !playerCanAttack && !isPlayerTakeHit
-        {
-            changePlayerState(to: .jump)
-        } else if playerIsOnGround && playerState != .idle
-            && playerPhysicsBody.velocity.dx == 0 && !playerCanAttack
-            && !isPlayerTakeHit
-        {
-            changePlayerState(to: .idle)
-        } else if playerIsOnGround && playerState != .run
-            && playerPhysicsBody.velocity.dx != 0 && !playerCanAttack
-            && !isPlayerTakeHit
-        {
-            changePlayerState(to: .run)
-        } else if playerCanAttack && playerState != .attack1 && !isPlayerTakeHit
-            && randomPlayerAttackVersion == 1
-        {
-            changePlayerState(to: .attack1)
-        } else if playerCanAttack && playerState != .attack2 && !isPlayerTakeHit
-            && randomPlayerAttackVersion == 2
-        {
-            changePlayerState(to: .attack2)
-        } else if isPlayerTakeHit && playerState != .takeHit {
-            changePlayerState(to: .takeHit)
+        [
+            playerSpriteSystem, playerPhysicsSystem, playerControlSystem,
+            playerAnimationSystem,
+        ].forEach {
+            $0.update(deltaTime: deltaTime)
         }
-
+        
         enumerateChildNodes(withName: "enemy") { node, _ in
-            let dx = self.player.position.x - node.position.x
-            let dy = self.player.position.y - node.position.y
+            let dx = PlayerState.shared.node.position.x - node.position.x
+            let dy = PlayerState.shared.node.position.y - node.position.y
             let angle = atan2(dy, dx)
 
             let vx = cos(angle) * enemySpeed
@@ -173,8 +149,8 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
                 node.position.y += vy
             }
         }
-        
-        if hp <= 0 {
+
+        if PlayerState.shared.hp <= 0 {
             showGameOverOverlay()
         }
 
@@ -185,7 +161,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
             contact.bodyA.categoryBitMask | contact.bodyB.categoryBitMask
 
         if combo == PhysicsCategory.player | PhysicsCategory.land {
-            playerIsOnGround = true
+            PlayerState.shared.isOnGround = true
         }
 
         if combo == PhysicsCategory.land | PhysicsCategory.enemy {
@@ -202,10 +178,11 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
 
             guard let enemyPosition = enemyNode?.position else { return }
 
-            if playerCanAttack
-                && ((player.xScale > 0 && enemyPosition.x > player.position.x)
-                    || (player.xScale < 0
-                        && enemyPosition.x < player.position.x))
+            if PlayerState.shared.canAttack
+                && ((PlayerState.shared.node.xScale > 0
+                    && enemyPosition.x > PlayerState.shared.node.position.x)
+                    || (PlayerState.shared.node.xScale < 0
+                        && enemyPosition.x < PlayerState.shared.node.position.x))
             {
                 enemyNode?.run(
                     SKAction.sequence(
@@ -239,8 +216,8 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
                 healthPlusNode = contact.bodyB.node
             }
             healthPlusNode?.removeFromParent()
-            hp += 10
-            hpLabelNode.text = "HP: \(hp)"
+            PlayerState.shared.hp += 10
+            hpLabelNode.text = "HP: \(PlayerState.shared.hp)"
         }
     }
 
@@ -249,10 +226,10 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
             contact.bodyA.categoryBitMask | contact.bodyB.categoryBitMask
 
         if combo == PhysicsCategory.player | PhysicsCategory.land {
-            playerIsOnGround = false
+            PlayerState.shared.isOnGround = false
         }
     }
-    
+
     override func willMove(from view: SKView) {
         self.removeAllActions()
         self.removeAllChildren()
@@ -268,7 +245,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         if isAttackBody {
             let attackTexture = SKTexture(
                 imageNamed:
-                    "player_attack_\(randomPlayerAttackVersion)_004\(lastDirection == -1 ? "_left" : "")"
+                    "player_attack_\(PlayerState.shared.randomAttackVersion)_004\(PlayerState.shared.lastDirection == -1 ? "_left" : "")"
             )
             physicsBody = SKPhysicsBody(
                 texture: attackTexture,
@@ -279,11 +256,11 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
             )
         } else {
             physicsBody = SKPhysicsBody(
-                texture: playerIdleFrames.first!,
+                texture: PlayerState.shared.idleFrames.first!,
                 size: CGSize(
-                    width: playerIdleFrames.first!.size().width
+                    width: PlayerState.shared.idleFrames.first!.size().width
                         * characterScale,
-                    height: playerIdleFrames.first!.size().height
+                    height: PlayerState.shared.idleFrames.first!.size().height
                         * characterScale
                 )
             )
@@ -298,19 +275,6 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         physicsBody.isDynamic = true
         physicsBody.affectedByGravity = true
         return physicsBody
-    }
-
-    func setupCharacters() {
-        player = SKSpriteNode(
-            texture: playerIdleFrames.first,
-            size: CGSize(
-                width: playerIdleFrames.first!.size().width * characterScale,
-                height: playerIdleFrames.first!.size().height * characterScale
-            )
-        )
-        player.physicsBody = setupCharacterPhysicsBody()
-        player.zPosition = 1
-        addChild(player)
     }
 
     func setupAnimationFrames(name: String) -> [SKTexture] {
@@ -502,113 +466,36 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
 
     // MARK: -setup end
 
-    func changePlayerState(to newState: CharacterState) {
-        playerState = newState
-        player.removeAction(forKey: playerAnimationKey)
-
-        switch playerState {
-        case .idle:
-            startAnimationFrames(
-                frames: playerIdleFrames,
-                key: playerAnimationKey,
-                character: player,
-                loop: true
-            )
-        case .run:
-            startAnimationFrames(
-                frames: playerRunFrames,
-                key: playerAnimationKey,
-                character: player,
-                loop: true
-            )
-        case .jump:
-            startAnimationFrames(
-                frames: playerJumpFrames,
-                key: playerAnimationKey,
-                character: player,
-                loop: false
-            )
-        case .fall:
-            startAnimationFrames(
-                frames: playerFallFrames,
-                key: playerAnimationKey,
-                character: player,
-                loop: false
-            )
-        case .attack1:
-            startAnimationFrames(
-                frames: playerAttack1Frames,
-                key: playerAnimationKey,
-                character: player,
-                loop: false,
-                timePerFrame: 0.01
-            )
-        case .attack2:
-            startAnimationFrames(
-                frames: playerAttack2Frames,
-                key: playerAnimationKey,
-                character: player,
-                loop: false,
-                timePerFrame: 0.01
-            )
-        case .takeHit:
-            startAnimationFrames(
-                frames: playerTakeHit,
-                key: playerAnimationKey,
-                character: player,
-                loop: false,
-                timePerFrame: 0.01
-            )
-        case .dead: break
-        }
-    }
-
-    func playerHorizontalMove() {
-        if moveDirection != 0 && !playerCanAttack {
-            player.xScale = CGFloat(moveDirection)
-        }
-        player.physicsBody?.velocity.dx = CGFloat(moveDirection) * moveSpeed
-    }
-
-    func startAnimationFrames(
-        frames: [SKTexture],
-        key: String,
-        character: SKSpriteNode,
-        loop: Bool,
-        timePerFrame: TimeInterval = 0.1
-    ) {
-        let action = SKAction.animate(with: frames, timePerFrame: timePerFrame)
-        character.run(
-            loop ? SKAction.repeatForever(action) : action,
-            withKey: key
-        )
-    }
-
     func playerJump() {
-        if player.physicsBody?.velocity.dy != 0 { return }
-        player.physicsBody?.velocity.dy = 0
-        player.physicsBody?.applyImpulse(CGVector(dx: 0, dy: jumpImpulse))
+        let physicsBody = PlayerState.shared.node.physicsBody
+        if physicsBody?.velocity.dy != 0 { return }
+        physicsBody?.velocity.dy = 0
+        physicsBody?.applyImpulse(CGVector(dx: 0, dy: jumpImpulse))
     }
 
     func playerAttack() {
-        playerCanAttack = true
-        randomPlayerAttackVersion = randomPlayerAttackVersion == 1 ? 2 : 1
-        player.physicsBody = setupCharacterPhysicsBody(isAttackBody: true)
+        PlayerState.shared.canAttack = true
+        PlayerState.shared.randomAttackVersion =
+            PlayerState.shared.randomAttackVersion == 1 ? 2 : 1
+        PlayerState.shared.node.physicsBody = setupCharacterPhysicsBody(
+            isAttackBody: true
+        )
         DispatchQueue.main.asyncAfter(
             deadline: .now() + 0.1,
             execute: {
-                self.playerCanAttack = false
-                self.player.physicsBody = self.setupCharacterPhysicsBody()
+                PlayerState.shared.canAttack = false
+                PlayerState.shared.node.physicsBody =
+                    self.setupCharacterPhysicsBody()
             }
         )
     }
 
     func handlePlayerTakeHit() {
-        isPlayerTakeHit = true
-        hp -= 1
-        hpLabelNode.text = "HP: \(hp)"
+        PlayerState.shared.isTakeHit = true
+        PlayerState.shared.hp -= 1
+        hpLabelNode.text = "HP: \(PlayerState.shared.hp)"
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-            self.isPlayerTakeHit = false
+            PlayerState.shared.isTakeHit = false
         }
     }
 
@@ -664,11 +551,11 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
 
         addChild(healthPlus)
     }
-    
+
     func showGameOverOverlay() {
         // 1. Block input & physics
         isPaused = true
-        
+
         // 2. Buat overlay node
         let overlay = SKSpriteNode(color: .black, size: size)
         overlay.alpha = 0.7
@@ -676,7 +563,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         overlay.position = CGPoint(x: frame.midX, y: frame.midY)
         overlay.name = "GameOverOverlay"
         addChild(overlay)
-        
+
         // 3. Tambahkan label Game Over
         let label = SKLabelNode(fontNamed: "PixeloidSans-Bold")
         label.text = "Game Over"
@@ -684,7 +571,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         label.position = .zero
         label.zPosition = 11
         overlay.addChild(label)
-        
+
         // 4. Tambahkan tombol Restart jika mau
         let restart = SKLabelNode(fontNamed: "PixeloidSans-Bold")
         restart.text = "Tap to Restart"
@@ -693,19 +580,18 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         restart.name = "Restart"
         restart.zPosition = 11
         overlay.addChild(restart)
-        
+
         isGameOver = true
     }
-    
+
     func restartGame() {
         isGameOver = false
         isPaused = false
-        
+
         let gameScene = GameScene.newGameScene()
         let transition = SKTransition.fade(withDuration: 0.5)
         view?.presentScene(gameScene, transition: transition)
     }
-
 
 }
 
@@ -722,11 +608,11 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
                 let node = atPoint(loc)
 
                 if node.name == "left" {
-                    moveDirection = -1
-                    lastDirection = -1
+                    PlayerState.shared.moveDirection = -1
+                    PlayerState.shared.lastDirection = -1
                 } else if node.name == "right" {
-                    moveDirection = 1
-                    lastDirection = 1
+                    PlayerState.shared.moveDirection = 1
+                    PlayerState.shared.lastDirection = 1
                 }
 
                 if node.name == "jump" {
@@ -737,7 +623,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
                     playerAttack()
                 }
             }
-            
+
             if isGameOver {
                 restartGame()
             }
@@ -805,17 +691,17 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
 
         private func updateForKeyboard() {
             if pressedKeys.contains(KeyInput.a) {
-                moveDirection = -1
-                lastDirection = -1
+                PlayerState.shared.moveDirection = -1
+                PlayerState.shared.lastDirection = -1
             } else if pressedKeys.contains(KeyInput.d) {
-                moveDirection = 1
-                lastDirection = 1
+                PlayerState.shared.moveDirection = 1
+                PlayerState.shared.lastDirection = 1
             }
 
             if !pressedKeys.contains(KeyInput.a)
                 && !pressedKeys.contains(KeyInput.d)
             {
-                moveDirection = 0
+                PlayerState.shared.moveDirection = 0
             }
 
             if pressedKeys.contains(KeyInput.j) {

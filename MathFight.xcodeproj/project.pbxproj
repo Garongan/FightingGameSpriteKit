@@ -13,20 +13,16 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		BD5B735E2E44AB3F009974B7 /* Exceptions for "MathFight iOS" folder in "MathFight iOS" target */ = {
-			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
-			membershipExceptions = (
-				"MathFight-iOS-Info.plist",
-			);
-			target = BDBBCD002E3BA95F0068E6F1 /* MathFight iOS */;
-		};
 		BDBBCD382E3BA95F0068E6F1 /* Exceptions for "MathFight Shared" folder in "MathFight iOS" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
-				Actions.sks,
+				Components/PhysicsComponent.swift,
+				Components/SpriteComponent.swift,
+				Entities/PlayerEntity.swift,
 				GameScene.sks,
 				GameScene.swift,
 				GameSceneConstant.swift,
+				GameSceneSetup.swift,
 				Resources/Assets.xcassets,
 				"Resources/Font/PixeloidSans-Bold.ttf",
 				Resources/Sprites/Background/land_0002.png,
@@ -44,6 +40,9 @@
 				Resources/Sprites/Player/PlayerJump.atlas,
 				Resources/Sprites/Player/PlayerRun.atlas,
 				Resources/Sprites/Player/PlayerTakeHit.atlas,
+				States/PlayerState.swift,
+				Systems/PlayerAnimationSystem.swift,
+				Systems/PlayerControlSystem.swift,
 				TestView.swift,
 			);
 			target = BDBBCD002E3BA95F0068E6F1 /* MathFight iOS */;
@@ -51,10 +50,13 @@
 		BDBBCD3C2E3BA95F0068E6F1 /* Exceptions for "MathFight Shared" folder in "MathFight tvOS" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
-				Actions.sks,
+				Components/PhysicsComponent.swift,
+				Components/SpriteComponent.swift,
+				Entities/PlayerEntity.swift,
 				GameScene.sks,
 				GameScene.swift,
 				GameSceneConstant.swift,
+				GameSceneSetup.swift,
 				Resources/Assets.xcassets,
 				"Resources/Font/PixeloidSans-Bold.ttf",
 				Resources/Sprites/Background/land_0002.png,
@@ -72,6 +74,9 @@
 				Resources/Sprites/Player/PlayerJump.atlas,
 				Resources/Sprites/Player/PlayerRun.atlas,
 				Resources/Sprites/Player/PlayerTakeHit.atlas,
+				States/PlayerState.swift,
+				Systems/PlayerAnimationSystem.swift,
+				Systems/PlayerControlSystem.swift,
 				TestView.swift,
 			);
 			target = BDBBCD112E3BA95F0068E6F1 /* MathFight tvOS */;
@@ -79,10 +84,13 @@
 		BDBBCD402E3BA95F0068E6F1 /* Exceptions for "MathFight Shared" folder in "MathFight macOS" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
-				Actions.sks,
+				Components/PhysicsComponent.swift,
+				Components/SpriteComponent.swift,
+				Entities/PlayerEntity.swift,
 				GameScene.sks,
 				GameScene.swift,
 				GameSceneConstant.swift,
+				GameSceneSetup.swift,
 				Resources/Assets.xcassets,
 				"Resources/Font/PixeloidSans-Bold.ttf",
 				Resources/Sprites/Background/land_0002.png,
@@ -100,6 +108,9 @@
 				Resources/Sprites/Player/PlayerJump.atlas,
 				Resources/Sprites/Player/PlayerRun.atlas,
 				Resources/Sprites/Player/PlayerTakeHit.atlas,
+				States/PlayerState.swift,
+				Systems/PlayerAnimationSystem.swift,
+				Systems/PlayerControlSystem.swift,
 				TestView.swift,
 			);
 			target = BDBBCD212E3BA95F0068E6F1 /* MathFight macOS */;
@@ -119,9 +130,6 @@
 		};
 		BDBBCD032E3BA95F0068E6F1 /* MathFight iOS */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-				BD5B735E2E44AB3F009974B7 /* Exceptions for "MathFight iOS" folder in "MathFight iOS" target */,
-			);
 			path = "MathFight iOS";
 			sourceTree = "<group>";
 		};
