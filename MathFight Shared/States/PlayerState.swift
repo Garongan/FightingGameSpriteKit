@@ -42,4 +42,7 @@ class PlayerState {
     var lastDirection: Int = 1
     var isTakeHit = false
     var hp = 100
+    var isJump: Bool = false
+    var isAttack: Bool = false
+    var hpLabelNode = SKLabelNode()
 }

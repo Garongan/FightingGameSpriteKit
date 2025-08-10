@@ -17,20 +17,25 @@ class PlayerEntity: GKEntity {
             texture: texture,
             size: CGSize(
                 width: texture.size().width
-                * characterScale,
+                    * characterScale,
                 height: texture.size().height
-                * characterScale
+                    * characterScale
             )
         )
-        addComponent(PhysicsComponent(body: body, category: PhysicsCategory.player,
-                                      collision: PhysicsCategory.land,
-                                      contact: PhysicsCategory.enemy | PhysicsCategory.land))
-        
+        addComponent(
+            PhysicsComponent(
+                body: body,
+                category: PhysicsCategory.player,
+                collision: PhysicsCategory.land,
+                contact: PhysicsCategory.enemy | PhysicsCategory.land
+            )
+        )
+
         addComponent(PlayerControlSystem())
-        
+
         addComponent(PlayerAnimationSystem())
     }
-    
+
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }

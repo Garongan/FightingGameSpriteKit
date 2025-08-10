@@ -9,7 +9,7 @@ import Foundation
 import GameplayKit
 
 class PlayerAnimationSystem: GKComponent {
-    
+
     override func update(deltaTime seconds: TimeInterval) {
         if !PlayerState.shared.isOnGround
             && PlayerState.shared.node.physicsBody!.velocity.dy < 0
@@ -82,6 +82,7 @@ class PlayerAnimationSystem: GKComponent {
                 character: PlayerState.shared.node,
                 loop: false
             )
+            PlayerState.shared.isJump = false
         case .fall:
             GameSceneSetup.shared.startAnimationFrames(
                 frames: PlayerState.shared.fallFrames,
@@ -97,6 +98,7 @@ class PlayerAnimationSystem: GKComponent {
                 loop: false,
                 timePerFrame: 0.01
             )
+            PlayerState.shared.isAttack = false
         case .attack2:
             GameSceneSetup.shared.startAnimationFrames(
                 frames: PlayerState.shared.attack2Frames,
@@ -105,6 +107,7 @@ class PlayerAnimationSystem: GKComponent {
                 loop: false,
                 timePerFrame: 0.01
             )
+            PlayerState.shared.isAttack = false
         case .takeHit:
             GameSceneSetup.shared.startAnimationFrames(
                 frames: PlayerState.shared.takeHitFrames,

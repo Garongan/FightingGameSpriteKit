@@ -17,12 +17,18 @@
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Components/PhysicsComponent.swift,
+				Components/SpawnerComponent.swift,
 				Components/SpriteComponent.swift,
+				Entities/EnemyEntity.swift,
+				Entities/EnemySpawnerEntity.swift,
+				Entities/HealthPlusEntity.swift,
+				Entities/HealthPlusSpawnerEntity.swift,
 				Entities/PlayerEntity.swift,
 				GameScene.sks,
 				GameScene.swift,
 				GameSceneConstant.swift,
 				GameSceneSetup.swift,
+				Managers/HapticManager.swift,
 				Resources/Assets.xcassets,
 				"Resources/Font/PixeloidSans-Bold.ttf",
 				Resources/Sprites/Background/land_0002.png,
@@ -40,10 +46,12 @@
 				Resources/Sprites/Player/PlayerJump.atlas,
 				Resources/Sprites/Player/PlayerRun.atlas,
 				Resources/Sprites/Player/PlayerTakeHit.atlas,
+				States/EnemyState.swift,
+				States/GameState.swift,
 				States/PlayerState.swift,
+				Systems/EnemyControlSystem.swift,
 				Systems/PlayerAnimationSystem.swift,
 				Systems/PlayerControlSystem.swift,
-				TestView.swift,
 			);
 			target = BDBBCD002E3BA95F0068E6F1 /* MathFight iOS */;
 		};
@@ -51,12 +59,18 @@
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Components/PhysicsComponent.swift,
+				Components/SpawnerComponent.swift,
 				Components/SpriteComponent.swift,
+				Entities/EnemyEntity.swift,
+				Entities/EnemySpawnerEntity.swift,
+				Entities/HealthPlusEntity.swift,
+				Entities/HealthPlusSpawnerEntity.swift,
 				Entities/PlayerEntity.swift,
 				GameScene.sks,
 				GameScene.swift,
 				GameSceneConstant.swift,
 				GameSceneSetup.swift,
+				Managers/HapticManager.swift,
 				Resources/Assets.xcassets,
 				"Resources/Font/PixeloidSans-Bold.ttf",
 				Resources/Sprites/Background/land_0002.png,
@@ -74,10 +88,12 @@
 				Resources/Sprites/Player/PlayerJump.atlas,
 				Resources/Sprites/Player/PlayerRun.atlas,
 				Resources/Sprites/Player/PlayerTakeHit.atlas,
+				States/EnemyState.swift,
+				States/GameState.swift,
 				States/PlayerState.swift,
+				Systems/EnemyControlSystem.swift,
 				Systems/PlayerAnimationSystem.swift,
 				Systems/PlayerControlSystem.swift,
-				TestView.swift,
 			);
 			target = BDBBCD112E3BA95F0068E6F1 /* MathFight tvOS */;
 		};
@@ -85,12 +101,18 @@
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Components/PhysicsComponent.swift,
+				Components/SpawnerComponent.swift,
 				Components/SpriteComponent.swift,
+				Entities/EnemyEntity.swift,
+				Entities/EnemySpawnerEntity.swift,
+				Entities/HealthPlusEntity.swift,
+				Entities/HealthPlusSpawnerEntity.swift,
 				Entities/PlayerEntity.swift,
 				GameScene.sks,
 				GameScene.swift,
 				GameSceneConstant.swift,
 				GameSceneSetup.swift,
+				Managers/HapticManager.swift,
 				Resources/Assets.xcassets,
 				"Resources/Font/PixeloidSans-Bold.ttf",
 				Resources/Sprites/Background/land_0002.png,
@@ -108,10 +130,12 @@
 				Resources/Sprites/Player/PlayerJump.atlas,
 				Resources/Sprites/Player/PlayerRun.atlas,
 				Resources/Sprites/Player/PlayerTakeHit.atlas,
+				States/EnemyState.swift,
+				States/GameState.swift,
 				States/PlayerState.swift,
+				Systems/EnemyControlSystem.swift,
 				Systems/PlayerAnimationSystem.swift,
 				Systems/PlayerControlSystem.swift,
-				TestView.swift,
 			);
 			target = BDBBCD212E3BA95F0068E6F1 /* MathFight macOS */;
 		};
