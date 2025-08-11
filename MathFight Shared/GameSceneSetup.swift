@@ -99,7 +99,7 @@ class GameSceneSetup {
 
     func setupBackground(scene: SKScene) {
         let size = scene.size
-        
+
         var midSpriteNodes: [SKSpriteNode] = []
         let bgCount = Int(ceil(size.width / 200)) + 1
 
@@ -165,17 +165,11 @@ class GameSceneSetup {
 
     func setupLand(scene: SKScene) {
         let size = scene.size
-        
+
         let landTexture = SKTexture(imageNamed: "land_0002")
         let landCount = Int(ceil(size.width / 100)) + 1
 
         let earthTexture = SKTexture(imageNamed: "land_0004")
-
-        #if os(iOS)
-            let verticalOffsetFraction: CGFloat = 0.19
-        #elseif os(macOS)
-            let verticalOffsetFraction: CGFloat = 0.4
-        #endif
 
         var landContainerWidth: CGFloat = 0
 
@@ -270,9 +264,11 @@ class GameSceneSetup {
     }
 
     func restartGame(scene: SKScene) {
-        PlayerState.shared.hp = 100
         GameState.shared.isGameOver = false
         scene.isPaused = false
+        
+        PlayerState.shared.hp = 100
+        EnemyState.shared.enemyKilled = 0
 
         let gameScene = GameScene.newGameScene()
         let transition = SKTransition.fade(withDuration: 0.5)

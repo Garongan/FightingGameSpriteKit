@@ -10,11 +10,6 @@ import SpriteKit
 
 class GameScene: SKScene, SKPhysicsContactDelegate {
 
-    var enemy: SKSpriteNode!
-    var enemyRunFrames: [SKTexture] {
-        GameSceneSetup.shared.setupAnimationFrames(name: "EnemyRun")
-    }
-
     var entities = [GKEntity]()
 
     lazy var playerSpriteSystem = GKComponentSystem(
@@ -60,6 +55,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         physicsWorld.gravity = CGVector(dx: 0, dy: -9.8)
         physicsWorld.contactDelegate = self
 
+        /// Player setup
         let player = PlayerEntity()
         entities.append(player)
         for system in [
@@ -72,21 +68,40 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
             player.component(ofType: SpriteComponent.self)!.node
         addChild(PlayerState.shared.node)
 
-        let enemySpawnerEntity = EnemySpawnerEntity(
+        /// Enemy bat fly setup
+        let enemyBatFlySpawnerEntity = EnemySpawnerEntity(
             scene: self,
-            interval: 1.0,
-            controlSystem: enemyControlSystem
+            interval: 2.0,
+            isFlying: true,
+            textureFrames: EnemyState.shared.enemyBatFlyFrames,
+            spriteName: "enemy_fly"
         )
-        entities.append(enemySpawnerEntity)
+        entities.append(enemyBatFlySpawnerEntity)
         for system in [
             spawnerSystem, enemyControlSystem,
         ] {
-            system.addComponent(foundIn: enemySpawnerEntity)
+            system.addComponent(foundIn: enemyBatFlySpawnerEntity)
         }
 
+        /// Enemy monster run setup
+        let enemyMonsterRunSpawnerEntity = EnemySpawnerEntity(
+            scene: self,
+            interval: 2.0,
+            isFlying: false,
+            textureFrames: EnemyState.shared.enemyMonsterRunFrames,
+            spriteName: "enemy_ground"
+        )
+        entities.append(enemyMonsterRunSpawnerEntity)
+        for system in [
+            spawnerSystem, enemyControlSystem,
+        ] {
+            system.addComponent(foundIn: enemyMonsterRunSpawnerEntity)
+        }
+
+        /// Health Plus setup
         let healthPlusSpawnerEntity = HealthPlusSpawnerEntity(
             scene: self,
-            interval: 5.0
+            interval: 3.0
         )
         entities.append(healthPlusSpawnerEntity)
         for system in [
@@ -120,6 +135,61 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
             GameSceneSetup.shared.showGameOverOverlay(scene: self)
         }
 
+        if EnemyState.shared.enemyKilled % 2 == 0
+            && EnemyState.shared.enemyKilled > 0
+            && PlayerState.shared.clonedNode == nil
+        {
+            let clonedPlayerEntity = PlayerEntity()
+            let clonedPlayerNode = clonedPlayerEntity.component(
+                ofType: SpriteComponent.self
+            )!.node
+            clonedPlayerNode.position = PlayerState.shared.node.position
+            clonedPlayerNode.xScale = PlayerState.shared.node.xScale
+            let attackTexture = SKTexture(
+                imageNamed:
+                    "player_attack_\(PlayerState.shared.randomAttackVersion)_004\(PlayerState.shared.lastDirection == -1 ? "_left" : "")"
+            )
+            let physicsBody = SKPhysicsBody(
+                texture: attackTexture,
+                size: CGSize(
+                    width: attackTexture.size().width * characterScale,
+                    height: attackTexture.size().height * characterScale
+                )
+            )
+            clonedPlayerNode.physicsBody = physicsBody
+            clonedPlayerNode.physicsBody?.categoryBitMask =
+                PhysicsCategory.clonedPlayer
+            physicsBody.collisionBitMask =
+                PhysicsCategory.land | PhysicsCategory.enemy
+            physicsBody.contactTestBitMask =
+                PhysicsCategory.land | PhysicsCategory.enemy
+            physicsBody.allowsRotation = false
+            physicsBody.isDynamic = true
+            physicsBody.affectedByGravity = true
+
+            clonedPlayerNode.run(
+                .sequence([
+                    .colorize(with: .black, colorBlendFactor: 1.0, duration: 0),
+                    .animate(
+                        with: PlayerState.shared.randomAttackVersion == 1
+                            ? PlayerState.shared.attack1Frames
+                            : PlayerState.shared.attack2Frames,
+                        timePerFrame: 0.075
+                    ),
+                ])
+
+            )
+
+            PlayerState.shared.clonedNode = clonedPlayerNode
+            addChild(clonedPlayerNode)
+
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                PlayerState.shared.clonedNode = nil
+                clonedPlayerNode.removeFromParent()
+                EnemyState.shared.enemyKilled = 0
+            }
+        }
+
     }
 
     func didBegin(_ contact: SKPhysicsContact) {
@@ -136,9 +206,9 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
 
         if combo == PhysicsCategory.player | PhysicsCategory.enemy {
             var enemyNode: SKNode?
-            if contact.bodyA.node?.name == "enemy" {
+            if (contact.bodyA.node?.name?.contains("enemy")) != nil {
                 enemyNode = contact.bodyA.node
-            } else if contact.bodyB.node?.name == "enemy" {
+            } else if (contact.bodyB.node?.name?.contains("enemy")) != nil {
                 enemyNode = contact.bodyB.node
             }
 
@@ -157,12 +227,16 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
                                 with: .red,
                                 colorBlendFactor: 1.0,
                                 duration: 0.15
-                            ), .wait(forDuration: 0.15), .removeFromParent(),
+                            ),
+                            .wait(forDuration: 0.15),
+                            .removeFromParent(),
                         ]
                     )
                 )
+                EnemyState.shared.enemyKilled += 1
             } else {
                 PlayerState.shared.isTakeHit = true
+                enemyNode?.removeFromParent()
             }
         }
 
@@ -181,9 +255,48 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
             } else if contact.bodyB.node?.name == "healthPlus" {
                 healthPlusNode = contact.bodyB.node
             }
-            healthPlusNode?.removeFromParent()
-            PlayerState.shared.hp += 10
-            PlayerState.shared.hpLabelNode.text = "HP: \(PlayerState.shared.hp)"
+
+            if PlayerState.shared.canAttack {
+                healthPlusNode?.run(
+                    SKAction.sequence(
+                        [
+                            .colorize(
+                                with: .red,
+                                colorBlendFactor: 1.0,
+                                duration: 0.15
+                            ), .wait(forDuration: 0.15), .removeFromParent(),
+                        ]
+                    )
+                )
+            } else {
+                healthPlusNode?.removeFromParent()
+                PlayerState.shared.hp += 10
+                PlayerState.shared.hpLabelNode.text =
+                    "HP: \(PlayerState.shared.hp)"
+            }
+        }
+
+        if combo == PhysicsCategory.clonedPlayer | PhysicsCategory.enemy {
+            var enemyNode: SKNode?
+            if (contact.bodyA.node?.name?.contains("enemy")) != nil {
+                enemyNode = contact.bodyA.node
+            } else if (contact.bodyB.node?.name?.contains("enemy")) != nil {
+                enemyNode = contact.bodyB.node
+            }
+
+            enemyNode?.run(
+                SKAction.sequence(
+                    [
+                        .colorize(
+                            with: .red,
+                            colorBlendFactor: 1.0,
+                            duration: 0.15
+                        ),
+                        .wait(forDuration: 0.15),
+                        .removeFromParent(),
+                    ]
+                )
+            )
         }
     }
 
@@ -199,6 +312,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     override func willMove(from view: SKView) {
         self.removeAllActions()
         self.removeAllChildren()
+        entities.removeAll()
         physicsWorld.contactDelegate = nil
     }
 

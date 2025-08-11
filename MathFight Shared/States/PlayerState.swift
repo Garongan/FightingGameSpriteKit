@@ -13,6 +13,7 @@ class PlayerState {
     private init() {}
     
     var node = SKSpriteNode()
+    var clonedNode: SKSpriteNode?
     var state: CharacterState = .idle
     var isOnGround: Bool = false
     var canAttack: Bool = false

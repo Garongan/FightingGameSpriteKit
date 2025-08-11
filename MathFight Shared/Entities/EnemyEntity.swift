@@ -9,11 +9,11 @@ import GameplayKit
 import SpriteKit
 
 class EnemyEntity: GKEntity {
-    override init() {
+    init(textureFrames: [SKTexture], spriteName: String) {
         super.init()
-        let texture = EnemyState.shared.enemyRunFrames.first!
+        let texture = textureFrames.first!
         let spriteComponent = SpriteComponent(texture: texture)
-        spriteComponent.node.name = "enemy"
+        spriteComponent.node.name = spriteName
         addComponent(spriteComponent)
 
         let body = SKPhysicsBody(circleOfRadius: texture.size().width)
@@ -21,7 +21,7 @@ class EnemyEntity: GKEntity {
             PhysicsComponent(
                 body: body,
                 category: PhysicsCategory.enemy,
-                collision: PhysicsCategory.player,
+                collision: PhysicsCategory.player | PhysicsCategory.land,
                 contact: PhysicsCategory.player
             )
         )
@@ -29,7 +29,7 @@ class EnemyEntity: GKEntity {
         spriteComponent.node.run(
             SKAction.repeatForever(
                 SKAction.animate(
-                    with: EnemyState.shared.enemyRunFrames,
+                    with: textureFrames,
                     timePerFrame: 0.1
                 )
             )

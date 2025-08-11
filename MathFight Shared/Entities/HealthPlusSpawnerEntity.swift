@@ -24,7 +24,6 @@ class HealthPlusSpawnerEntity: GKEntity, SpawnerEntity {
     required init?(coder: NSCoder) { fatalError() }
 
     func spawnEnemy() {
-        print("spawn health plus")
         let healthPlus = HealthPlusEntity()
 
         // position random

@@ -15,7 +15,7 @@ class PlayerControlSystem: GKComponent {
         handlePlayerTakeHit()
     }
 
-    func playerHorizontalMove() {
+    private func playerHorizontalMove() {
         if PlayerState.shared.moveDirection != 0
             && !PlayerState.shared.canAttack
         {
@@ -27,7 +27,7 @@ class PlayerControlSystem: GKComponent {
             CGFloat(PlayerState.shared.moveDirection) * moveSpeed
     }
 
-    func playerJump() {
+    private func playerJump() {
         if !PlayerState.shared.isJump { return }
 
         let physicsBody = PlayerState.shared.node.physicsBody
@@ -75,7 +75,7 @@ class PlayerControlSystem: GKComponent {
         return physicsBody
     }
 
-    func playerAttack() {
+    private func playerAttack() {
         if !PlayerState.shared.isAttack { return }
 
         PlayerState.shared.canAttack = true
@@ -93,10 +93,10 @@ class PlayerControlSystem: GKComponent {
             }
         )
     }
-    
-    func handlePlayerTakeHit() {
+
+    private func handlePlayerTakeHit() {
         if !PlayerState.shared.isTakeHit { return }
-        
+
         HapticManager.shared.playHaptic()
         PlayerState.shared.hp -= 1
         PlayerState.shared.hpLabelNode.text = "HP: \(PlayerState.shared.hp)"

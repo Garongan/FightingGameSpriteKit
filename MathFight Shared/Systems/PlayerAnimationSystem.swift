@@ -56,7 +56,7 @@ class PlayerAnimationSystem: GKComponent {
         }
     }
 
-    func changePlayerState(to newState: CharacterState) {
+    private func changePlayerState(to newState: CharacterState) {
         PlayerState.shared.state = newState
         PlayerState.shared.node.removeAction(forKey: playerAnimationKey)
 

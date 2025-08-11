@@ -12,7 +12,12 @@ class EnemyState {
     static let shared = EnemyState()
     private init() {}
     
-    var enemyRunFrames: [SKTexture] {
-        GameSceneSetup.shared.setupAnimationFrames(name: "EnemyRun")
+    var enemyKilled = 0
+    
+    var enemyBatFlyFrames: [SKTexture] {
+        GameSceneSetup.shared.setupAnimationFrames(name: "EnemyBatFly")
+    }
+    var enemyMonsterRunFrames: [SKTexture] {
+        GameSceneSetup.shared.setupAnimationFrames(name: "EnemyMonsterRun")
     }
 }

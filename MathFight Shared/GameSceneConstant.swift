@@ -12,6 +12,7 @@ struct PhysicsCategory {
     static let land: UInt32 = 1 << 1  // 0010
     static let enemy: UInt32 = 1 << 2
     static let healthPlus: UInt32 = 1 << 3
+    static let clonedPlayer: UInt32 = 1 << 4
 }
 
 /// Player constant
@@ -27,3 +28,10 @@ let enemySpeed: CGFloat = 200
 /// Shared constant
 let jumpImpulse: CGFloat = 120
 let characterScale = CGFloat(2)
+
+/// Setup background
+#if os(iOS)
+let verticalOffsetFraction: CGFloat = 0.19
+#elseif os(macOS)
+let verticalOffsetFraction: CGFloat = 0.4
+#endif
